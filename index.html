@@ -995,12 +995,52 @@ function renderResult(){
    <div><p class="eyebrow">Flashcards · Kolets kemi</p><h1 style="font-size:clamp(2rem,5vw,2.8rem);margin-top:4px">${esc(whose)}</h1>${when?`<p class="muted" style="margin-top:6px">Delat ${when}</p>`:''}</div>
    <div class="res-big"><div><b style="color:var(--ok)">${r.green}</b><span>Kan (gröna)</span></div><div><b style="color:var(--warn)">${r.yellow}</b><span>Kan lite (gula)</span></div><div><b style="color:var(--bad)">${r.red}</b><span>Kan inte (röda)</span></div><div><b>${r.none}</b><span>Inte övade</span></div></div>
    <div style="display:grid;gap:8px">${stackBar(r,n)}<p class="muted" style="font-size:.9rem">${Math.round(r.green/n*100)} % av alla ${n} kort är gröna${best?` · bästa förhör ${esc(best)}`:''}</p></div>
+   <div style="display:grid;gap:12px"><h3>Bläddra bland korten</h3><p class="muted" style="font-size:.95rem;margin-top:-6px">Varje kort visar hur ${esc(name||'personen')} har markerat det. Vänd kortet för att se svaret.</p><div class="chips" id="sv-filter"></div><div class="deck" id="sv-deck" style="margin:0;max-width:none"></div></div>
    <div><h3>Per ämne</h3><div class="res-topics">${TOPICS.map(tp=>{const cs=CARDS.filter(c=>c.t===tp.id),x=tallyOf(st,cs);return `<div class="res-topic"><span><b>${tp.name}</b></span>${stackBar(x,cs.length)}<span class="nums">${x.green}/${cs.length} gröna</span></div>`;}).join('')}</div></div>
    ${r.red?`<div class="res-list"><h3>Röda kort – öva på dessa först</h3><p class="muted" style="font-size:.9rem">Klicka på en fråga för att se svaret. Bra att förhöra på.</p>${list('red')}</div>`:''}
    ${r.yellow?`<div class="res-list"><h3>Gula kort – kan lite</h3>${list('yellow')}</div>`:''}
    ${!r.red&&!r.yellow?`<p>Inga röda eller gula kort.</p>`:''}
   </div>`;
 }
+
+/* Bläddra i delade kort (skrivskyddat) */
+const sv={filter:'alla',topic:'alla',list:[],i:0,flipped:false};
+const SV_FILTERS=[{id:'alla',name:'Alla'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'}];
+function buildSharedDeck(){
+  if(!SHARED)return;const st=SHARED.st;
+  sv.list=CARDS.filter(c=>(sv.topic==='alla'||c.t===sv.topic)&&(sv.filter==='alla'||(sv.filter==='none'?!st[c.id]:st[c.id]===sv.filter)));
+  sv.i=0;sv.flipped=false;
+  const r=tallyOf(st);
+  $('#sv-filter').innerHTML=SV_FILTERS.map(f=>`<button type="button" class="chip" aria-pressed="${f.id===sv.filter}" data-f="${f.id}">${f.name}${f.id!=='alla'?` (${r[f.id]})`:''}</button>`).join('')
+   +`<select id="sv-topic" aria-label="Ämne" style="padding:4px 10px;font-size:.9rem"><option value="alla">Alla ämnen</option>${TOPICS.map(t=>`<option value="${t.id}"${t.id===sv.topic?' selected':''}>${t.name}</option>`).join('')}</select>`;
+  $('#sv-filter').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{sv.filter=b.dataset.f;buildSharedDeck();});
+  $('#sv-topic').onchange=e=>{sv.topic=e.target.value;buildSharedDeck();};
+  renderSharedCard();
+}
+function svGo(i){if(i<0||i>=sv.list.length)return;sv.i=i;sv.flipped=false;renderSharedCard();}
+function renderSharedCard(){
+  const deck=$('#sv-deck'),st=SHARED.st;
+  if(!sv.list.length){deck.innerHTML=`<div class="done"><p class="muted">Inga kort matchar filtret.</p></div>`;return;}
+  const c=sv.list[sv.i],s=st[c.id],n=sv.list.length;
+  deck.innerHTML=`<div class="deck-meta"><span>${TOPIC[c.t].name}</span><span>Kort ${sv.i+1} av ${n}</span></div>
+  <div class="flip${sv.flipped?' on':''}" id="sv-flip" tabindex="0" role="button" aria-label="Vänd kortet">
+    <div class="flip-in">
+      <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(s)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att se svaret</p></div>
+      <div class="face back"><div class="face-head"><span class="tag">Svar</span>${badge(s)}</div><p class="a">${fmt(c.a)}</p>${c.m?`<div class="mol">${molSVG(MOLS[c.m])}</div>`:''}</div>
+    </div>
+  </div>
+  <div class="deck-nav"><button class="btn small" type="button" id="sv-prev" ${sv.i===0?'disabled':''}>← Föregående</button><span class="pos">${sv.i+1} / ${n}</span><button class="btn small" type="button" id="sv-next" ${sv.i===n-1?'disabled':''}>Nästa →</button></div>
+  <div class="dots">${sv.list.map((x,i)=>`<button type="button" class="${st[x.id]||''}${i===sv.i?' cur':''}" data-i="${i}" aria-label="Kort ${i+1}${st[x.id]?', '+STATUS[st[x.id]].label:''}"></button>`).join('')}</div>`;
+  const f=$('#sv-flip');f.onclick=()=>{sv.flipped=!sv.flipped;f.classList.toggle('on',sv.flipped);};
+  $('#sv-prev').onclick=()=>svGo(sv.i-1);$('#sv-next').onclick=()=>svGo(sv.i+1);
+  deck.querySelectorAll('.dots button').forEach(b=>b.onclick=()=>svGo(+b.dataset.i));
+}
+document.addEventListener('keydown',e=>{
+  if(currentView()!=='resultat'||!SHARED||!sv.list.length||e.target.matches('input,select,textarea,summary'))return;
+  if(e.key===' '){e.preventDefault();$('#sv-flip').click();}
+  else if(e.key==='ArrowRight')svGo(sv.i+1);
+  else if(e.key==='ArrowLeft')svGo(sv.i-1);
+});
 
 /* ============ ROUTING ============ */
 const VIEWS=['start','kort','forhor','karta','bilder','dela','resultat'];
@@ -1017,5 +1057,5 @@ function route(){
 }
 window.addEventListener('hashchange',route);
 
-renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();renderResult();route();
+renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();renderResult();buildSharedDeck();route();
 </script>
