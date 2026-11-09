@@ -121,6 +121,10 @@ section.view{padding-top:28px}
 .badge.red{color:var(--bad)} .badge.red i{background:var(--bad)}
 .badge.yellow{color:var(--warn)} .badge.yellow i{background:var(--warn)}
 .badge.green{color:var(--ok)} .badge.green i{background:var(--ok)}
+.badge.ignored{color:var(--muted)} .badge.ignored i{background:var(--muted)}
+.flip.ign .face{border-style:dashed;background:var(--paper)}
+.flip.ign .face .q,.flip.ign .face .a,.flip.ign .face .mol{opacity:.45}
+.deck-actions button[disabled]{opacity:.35;cursor:default}
 .deck-nav{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
 .deck-nav .pos{text-align:center;font-family:var(--mono);font-size:.9rem;color:var(--muted)}
 .deck-nav button[disabled]{opacity:.35;cursor:default}
@@ -134,6 +138,7 @@ section.view{padding-top:28px}
 .dots button.red{background:var(--bad);border-color:var(--bad)}
 .dots button.yellow{background:var(--warn);border-color:var(--warn)}
 .dots button.green{background:var(--ok);border-color:var(--ok)}
+.dots button.ignored{background:var(--line);border-color:var(--line)}
 .dots button.cur{outline:2.5px solid var(--accent);outline-offset:2px}
 .tally{display:flex;gap:12px;flex-wrap:wrap}
 .tally span{display:inline-flex;align-items:center;gap:5px}
@@ -291,7 +296,7 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
     <p class="muted" id="total-progress"></p>
   </div>
   <div class="goals" id="goals"></div>
-  <p class="muted" style="margin-top:18px;font-size:.9rem">Stapeln visar hur du har markerat korten inom målet: grönt = kan, gult = kan lite, rött = kan inte. <button class="chiplink" id="reset-progress" type="button">Nollställ</button> <span id="reset-confirm" hidden> Säker? <button class="chiplink" id="reset-yes" type="button">Ja, nollställ</button> <button class="chiplink" id="reset-no" type="button">Avbryt</button></span></p>
+  <p class="muted" style="margin-top:18px;font-size:.9rem">Stapeln visar hur du har markerat korten inom målet: grönt = kan, gult = kan lite, rött = kan inte. Ignorerade kort räknas inte med. <button class="chiplink" id="reset-progress" type="button">Nollställ</button> <span id="reset-confirm" hidden> Säker? <button class="chiplink" id="reset-yes" type="button">Ja, nollställ</button> <button class="chiplink" id="reset-no" type="button">Avbryt</button></span></p>
 </section>
 
 <!-- FLASHCARDS -->
@@ -724,12 +729,12 @@ const DIAGS={
 
 /* ============ LAGRING ============ */
 const KEY='kolets-kemi-v1';
-let store={status:{},best:null};
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){store.best=s.best||null;store.name=s.name||"";store.status=s.status||{};if(s.known)Object.keys(s.known).forEach(k=>{if(!store.status[k])store.status[k]='green';});}}catch(e){}
+let store={status:{},ignored:{},best:null};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){store.best=s.best||null;store.name=s.name||"";store.status=s.status||{};store.ignored=s.ignored||{};if(s.known)Object.keys(s.known).forEach(k=>{if(!store.status[k])store.status[k]='green';});}}catch(e){}
 const STATUS={red:{label:'Kan inte',hint:'rött',icon:'<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'},
  yellow:{label:'Kan lite',hint:'gult',icon:'<svg viewBox="0 0 16 16"><path d="M3.5 8h9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'},
  green:{label:'Kan',hint:'grönt',icon:'<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'}};
-const badge=st=>st?`<span class="badge ${st}"><i>${STATUS[st].icon}</i>${STATUS[st].label}</span>`:`<span class="badge muted">Ej markerad</span>`;
+const badge=(st,ign)=>ign?`<span class="badge ignored"><i><svg viewBox="0 0 16 16"><path d="M3 8h10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></i>Ignoreras – inte med på provet</span>`:st?`<span class="badge ${st}"><i>${STATUS[st].icon}</i>${STATUS[st].label}</span>`:`<span class="badge muted">Ej markerad</span>`;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
 
 /* ============ HJÄLP ============ */
@@ -740,27 +745,28 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 /* ============ START ============ */
 function renderStart(){
   $('#hero-mol').innerHTML=molSVG(MOLS.metan,'Metan, CH4');
-  const count=cs=>{const r={red:0,yellow:0,green:0};cs.forEach(c=>{const s=store.status[c.id];if(s)r[s]++;});return r;};
-  $('#goals').innerHTML=GOALS.map(g=>{const cs=CARDS.filter(c=>g.t.includes(c.t)),n=cs.length,r=count(cs);
+  const count=cs=>tallyOf(store.status,cs,store.ignored);
+  $('#goals').innerHTML=GOALS.map(g=>{const cs=CARDS.filter(c=>g.t.includes(c.t)),r=count(cs),n=r.n||1;
     return `<div class="goal"><div style="min-width:0"><p>${g.text}</p><div class="links">${g.t.map(t=>`<a class="chiplink" href="#kort" data-topic="${t}">${TOPIC[t].name}</a>`).join('')}</div></div>
-    <div class="meter"><span>${r.green} av ${n} gröna</span><div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div></div></div>`;}).join('');
+    <div class="meter"><span>${r.green} av ${r.n} gröna${r.ignored?` · ${r.ignored} ignoreras`:''}</span><div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div></div></div>`;}).join('');
   const r=count(CARDS);
-  $('#total-progress').textContent=`${r.green} gröna · ${r.yellow} gula · ${r.red} röda av ${CARDS.length} kort`+(store.best?` · bästa förhör ${store.best}`:'');
+  $('#total-progress').textContent=`${r.green} gröna · ${r.yellow} gula · ${r.red} röda av ${r.n} kort`+(r.ignored?` · ${r.ignored} ignoreras`:'')+(store.best?` · bästa förhör ${store.best}`:'');
 }
 document.addEventListener('click',e=>{const a=e.target.closest('[data-topic]');if(a){fc.topic=a.dataset.topic;fc.filter='alla';buildDeck();}});
 $('#reset-progress').onclick=()=>{$('#reset-confirm').hidden=false;};
 $('#reset-no').onclick=()=>{$('#reset-confirm').hidden=true;};
-$('#reset-yes').onclick=()=>{store={status:{},best:null,name:store.name};save();$('#reset-confirm').hidden=true;renderStart();buildDeck();};
+$('#reset-yes').onclick=()=>{store={status:{},ignored:store.ignored,best:null,name:store.name};save();$('#reset-confirm').hidden=true;renderStart();buildDeck();};
 
 /* ============ FLASHCARDS ============ */
 const fc={topic:'alla',filter:'alla',shuffled:false,list:[],i:0,flipped:false,timer:null};
-const FILTERS=[{id:'alla',name:'Alla kort'},{id:'ejklar',name:'Inte gröna'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'}];
+const FILTERS=[{id:'alla',name:'Alla kort'},{id:'ejklar',name:'Inte gröna'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'},{id:'ignored',name:'Ignorerade'}];
 function renderTopicChips(el,cur,cb){
   el.innerHTML=[{id:'alla',name:'Alla'}].concat(TOPICS).map(t=>`<button type="button" class="chip" aria-pressed="${t.id===cur}" data-t="${t.id}">${t.name}</button>`).join('');
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>cb(b.dataset.t));
 }
-function matchFilter(c){const s=store.status[c.id];
-  return fc.filter==='alla'||(fc.filter==='ejklar'&&s!=='green')||(fc.filter==='none'&&!s)||s===fc.filter;}
+function matchFilter(c){const s=store.status[c.id],ig=!!store.ignored[c.id];
+  if(fc.filter==='alla')return true;if(fc.filter==='ignored')return ig;if(ig)return false;
+  return (fc.filter==='ejklar'&&s!=='green')||(fc.filter==='none'&&!s)||s===fc.filter;}
 function buildDeck(){
   clearTimeout(fc.timer);
   const cs=CARDS.filter(c=>(fc.topic==='alla'||c.t===fc.topic)&&matchFilter(c));
@@ -779,28 +785,28 @@ function renderCard(){
     deck.innerHTML=`<div class="done"><h3>Inga kort här</h3><p class="muted">Inga kort i det här ämnet matchar filtret.</p><button class="btn primary" type="button" id="fc-all">Visa alla kort</button></div>`;
     $('#fc-all').onclick=()=>{fc.filter='alla';buildDeck();};return;
   }
-  const c=fc.list[fc.i],t=TOPIC[c.t],st=store.status[c.id],n=fc.list.length;
-  const r={red:0,yellow:0,green:0};fc.list.forEach(x=>{const s=store.status[x.id];if(s)r[s]++;});
-  deck.innerHTML=`<div class="deck-meta"><span>${t.name}</span><span class="tally"><span><i style="background:var(--ok)"></i>${r.green}</span><span><i style="background:var(--warn)"></i>${r.yellow}</span><span><i style="background:var(--bad)"></i>${r.red}</span></span></div>
-  <div class="flip${fc.flipped?' on':''}" id="flip" tabindex="0" role="button" aria-label="Vänd kortet">
+  const c=fc.list[fc.i],t=TOPIC[c.t],st=store.status[c.id],ign=!!store.ignored[c.id],n=fc.list.length;
+  const r=tallyOf(store.status,fc.list,store.ignored);
+  deck.innerHTML=`<div class="deck-meta"><span>${t.name}</span><span class="tally"><span><i style="background:var(--ok)"></i>${r.green}</span><span><i style="background:var(--warn)"></i>${r.yellow}</span><span><i style="background:var(--bad)"></i>${r.red}</span>${r.ignored?`<span><i style="background:var(--line)"></i>${r.ignored}</span>`:''}</span></div>
+  <div class="flip${fc.flipped?' on':''}${ign?' ign':''}" id="flip" tabindex="0" role="button" aria-label="Vänd kortet">
     <div class="flip-in">
-      <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(st)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att vända</p></div>
-      <div class="face back"><div class="face-head"><span class="tag">Svar</span>${badge(st)}</div><p class="a">${fmt(c.a)}</p>${c.m?`<div class="mol">${molSVG(MOLS[c.m])}</div>`:''}</div>
+      <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(st,ign)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att vända</p></div>
+      <div class="face back"><div class="face-head"><span class="tag">Svar</span>${badge(st,ign)}</div><p class="a">${fmt(c.a)}</p>${c.m?`<div class="mol">${molSVG(MOLS[c.m])}</div>`:''}</div>
     </div>
   </div>
-  <div class="deck-actions">${['red','yellow','green'].map((s,k)=>`<button type="button" class="b-${s}" data-st="${s}" aria-pressed="${st===s}">${STATUS[s].label} <small>${['Inte alls','Ungefär, inte detaljer','Helt säkert'][k]} · <span class="kbd">${k+1}</span></small></button>`).join('')}</div>
+  <div class="deck-actions">${['red','yellow','green'].map((s,k)=>`<button type="button" class="b-${s}" data-st="${s}" aria-pressed="${!ign&&st===s}" ${ign?'disabled':''}>${STATUS[s].label} <small>${['Inte alls','Ungefär, inte detaljer','Helt säkert'][k]} · <span class="kbd">${k+1}</span></small></button>`).join('')}</div>
   <div class="clear-row">${fc.confirmAll
-    ?`<span class="confirm">Rensa färgerna på alla ${CARDS.length} kort? <button class="btn small" type="button" id="fc-resetyes" style="border-color:var(--bad);color:var(--bad)">Ja, rensa alla</button><button class="btn small" type="button" id="fc-resetno">Avbryt</button></span>`
-    :`<button class="linkbtn" type="button" id="fc-clear" ${st?'':'disabled'}>Rensa det här kortet <span class="kbd">0</span></button><button class="btn small" type="button" id="fc-resetall" ${Object.keys(store.status).length?'':'disabled'}>Rensa alla</button>`}</div>
+    ?`<span class="confirm">Rensa färgerna på alla kort? (Ignorerade kort förblir ignorerade.) <button class="btn small" type="button" id="fc-resetyes" style="border-color:var(--bad);color:var(--bad)">Ja, rensa alla</button><button class="btn small" type="button" id="fc-resetno">Avbryt</button></span>`
+    :`<button class="linkbtn" type="button" id="fc-clear" ${st&&!ign?'':'disabled'}>Rensa det här kortet <span class="kbd">0</span></button><button class="btn small" type="button" id="fc-ignore" aria-pressed="${ign}">${ign?'Sluta ignorera':'Ignorera'} <span class="kbd">I</span></button><button class="btn small" type="button" id="fc-resetall" ${Object.keys(store.status).length?'':'disabled'}>Rensa alla</button>`}</div>
   <div class="deck-nav"><button class="btn small" type="button" id="fc-prev" ${fc.i===0?'disabled':''}>← Föregående</button><span class="pos">Kort ${fc.i+1} av ${n}</span><button class="btn small" type="button" id="fc-next" ${fc.i===n-1?'disabled':''}>Nästa →</button></div>
-  <div class="dots" aria-label="Alla kort">${fc.list.map((x,i)=>`<button type="button" class="${store.status[x.id]||''}${i===fc.i?' cur':''}" data-i="${i}" aria-label="Kort ${i+1}${store.status[x.id]?', '+STATUS[store.status[x.id]].label:''}"></button>`).join('')}</div>`;
+  <div class="dots" aria-label="Alla kort">${fc.list.map((x,i)=>`<button type="button" class="${store.ignored[x.id]?'ignored':(store.status[x.id]||'')}${i===fc.i?' cur':''}" data-i="${i}" aria-label="Kort ${i+1}${store.ignored[x.id]?', ignoreras':store.status[x.id]?', '+STATUS[store.status[x.id]].label:''}"></button>`).join('')}</div>`;
   const flip=$('#flip');flip.onclick=()=>{fc.flipped=!fc.flipped;flip.classList.toggle('on',fc.flipped);};
   deck.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>mark(b.dataset.st));
   if(fc.confirmAll){
     $('#fc-resetno').onclick=()=>{fc.confirmAll=false;renderCard();};
     $('#fc-resetyes').onclick=()=>{store.status={};save();fc.confirmAll=false;fc.filter='alla';buildDeck();renderStart();};
   }else{
-    $('#fc-clear').onclick=clearMark;
+    $('#fc-clear').onclick=clearMark;$('#fc-ignore').onclick=toggleIgnore;
     $('#fc-resetall').onclick=()=>{clearTimeout(fc.timer);fc.confirmAll=true;renderCard();};
   }
   $('#fc-prev').onclick=()=>goTo(fc.i-1);$('#fc-next').onclick=()=>goTo(fc.i+1);
@@ -808,12 +814,19 @@ function renderCard(){
 }
 function mark(s){
   const c=fc.list[fc.i];clearTimeout(fc.timer);
+  if(store.ignored[c.id])return;
   if(store.status[c.id]===s){clearMark();return;}
   store.status[c.id]=s;save();renderStart();renderCard();
   if(fc.i<fc.list.length-1)fc.timer=setTimeout(()=>goTo(fc.i+1),450);
 }
-function clearMark(){
+function toggleIgnore(){
   const c=fc.list[fc.i];if(!c)return;clearTimeout(fc.timer);
+  if(store.ignored[c.id])delete store.ignored[c.id];else store.ignored[c.id]=true;
+  save();renderStart();renderCard();
+  if(store.ignored[c.id]&&fc.i<fc.list.length-1)fc.timer=setTimeout(()=>goTo(fc.i+1),450);
+}
+function clearMark(){
+  const c=fc.list[fc.i];if(!c||store.ignored[c.id])return;clearTimeout(fc.timer);
   delete store.status[c.id];save();renderStart();renderCard();
 }
 $('#fc-shuffle').onclick=()=>{fc.shuffled=!fc.shuffled;buildDeck();};
@@ -822,7 +835,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '){e.preventDefault();$('#flip').click();}
   else if(e.key==='ArrowRight')goTo(fc.i+1);
   else if(e.key==='ArrowLeft')goTo(fc.i-1);
-  else if(e.key==='1')mark('red');else if(e.key==='2')mark('yellow');else if(e.key==='3')mark('green');else if(e.key==='0'||e.key==='Backspace')clearMark();
+  else if(e.key==='1')mark('red');else if(e.key==='2')mark('yellow');else if(e.key==='3')mark('green');else if(e.key==='0'||e.key==='Backspace')clearMark();else if(e.key==='i'||e.key==='I')toggleIgnore();
 });
 
 /* ============ FÖRHÖR ============ */
@@ -955,17 +968,20 @@ const SHARE_BASE='https://daniel-wennerberg.github.io/kolets-kemi/';
 const CODE={red:1,yellow:2,green:3},DECODE=[null,'red','yellow','green'];
 function encodeStatus(st){let s='';for(let i=0;i<CARDS.length;i+=2){const a=CODE[st[CARDS[i].id]]||0,b=i+1<CARDS.length?(CODE[st[CARDS[i+1].id]]||0):0;s+=(a*4+b).toString(16);}return s;}
 function decodeStatus(s){const st={};for(let k=0;k<s.length;k++){const v=parseInt(s[k],16);if(isNaN(v))continue;const a=DECODE[v>>2],b=DECODE[v&3];if(a&&CARDS[2*k])st[CARDS[2*k].id]=a;if(b&&CARDS[2*k+1])st[CARDS[2*k+1].id]=b;}return st;}
-const tallyOf=(st,cs=CARDS)=>{const r={red:0,yellow:0,green:0,none:0};cs.forEach(c=>r[st[c.id]||'none']++);return r;};
-const stackBar=(r,n)=>`<div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div>`;
+function encodeIgn(ig){let s='';for(let i=0;i<CARDS.length;i+=4){let v=0;for(let k=0;k<4;k++)if(CARDS[i+k]&&ig[CARDS[i+k].id])v|=1<<k;s+=v.toString(16);}return s.replace(/0+$/,'');}
+function decodeIgn(s){const ig={};for(let j=0;j<(s||'').length;j++){const v=parseInt(s[j],16);if(isNaN(v))continue;for(let k=0;k<4;k++)if(v&(1<<k)&&CARDS[4*j+k])ig[CARDS[4*j+k].id]=true;}return ig;}
+const tallyOf=(st,cs=CARDS,ign={})=>{const r={red:0,yellow:0,green:0,none:0,ignored:0,n:0};cs.forEach(c=>{if(ign[c.id]){r.ignored++;return;}r.n++;r[st[c.id]||'none']++;});return r;};
+const stackBar=(r,_n)=>{const n=r.n||1;return `<div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div>`;};
 function shareLink(){
   const p=new URLSearchParams({n:(store.name||'').trim(),r:encodeStatus(store.status),t:Date.now().toString(36)});
   if(store.best)p.set('b',store.best);
+  const ig=encodeIgn(store.ignored);if(ig)p.set('i',ig);
   return SHARE_BASE+'?'+p.toString();
 }
 function renderShare(){
   $('#share-name').value=store.name||'';
-  const r=tallyOf(store.status);
-  $('#share-summary').innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Det här skickas</p><div class="tally" style="margin-bottom:8px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span><span class="muted">${r.none} omarkerade</span>${store.best?`<span class="muted">· bästa förhör ${store.best}</span>`:''}</div>${stackBar(r,CARDS.length)}`;
+  const r=tallyOf(store.status,CARDS,store.ignored);
+  $('#share-summary').innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Det här skickas</p><div class="tally" style="margin-bottom:8px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span><span class="muted">${r.none} omarkerade</span>${r.ignored?`<span class="muted">${r.ignored} ignoreras</span>`:''}${store.best?`<span class="muted">· bästa förhör ${store.best}</span>`:''}</div>${stackBar(r,CARDS.length)}`;
   $('#share-link').value=shareLink();
   $('#share-native').hidden=!navigator.share;
   $('#share-msg').textContent='';
@@ -983,20 +999,20 @@ $('#share-native').onclick=()=>{
 
 /* Delat resultat (öppnad länk) */
 const SHARED=(()=>{try{const p=new URLSearchParams(location.search);if(!p.has('r'))return null;
-  return {name:(p.get('n')||'').slice(0,30),st:decodeStatus(p.get('r')),best:p.get('b'),t:parseInt(p.get('t')||'',36)};}catch(e){return null;}})();
+  return {name:(p.get('n')||'').slice(0,30),st:decodeStatus(p.get('r')),ign:decodeIgn(p.get('i')),best:p.get('b'),t:parseInt(p.get('t')||'',36)};}catch(e){return null;}})();
 function renderResult(){
   if(!SHARED)return;
-  const {name,st,best,t}=SHARED,r=tallyOf(st),n=CARDS.length;
+  const {name,st,ign,best,t}=SHARED,r=tallyOf(st,CARDS,ign),n=r.n;
   const whose=name?(/[sxz]$/i.test(name)?name:name+'s')+' resultat':'Delat resultat';
   const when=isNaN(t)?'':new Date(t).toLocaleString('sv-SE',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  const list=s=>CARDS.filter(c=>st[c.id]===s).map(c=>`<details class="${s}"><summary>${fmt(c.q)} <span class="muted" style="font-weight:400">· ${TOPIC[c.t].name}</span></summary><p>${fmt(c.a)}</p></details>`).join('');
+  const list=s=>CARDS.filter(c=>!ign[c.id]&&st[c.id]===s).map(c=>`<details class="${s}"><summary>${fmt(c.q)} <span class="muted" style="font-weight:400">· ${TOPIC[c.t].name}</span></summary><p>${fmt(c.a)}</p></details>`).join('');
   $('#result').innerHTML=`<div class="res">
    <div class="res-banner"><span>Du tittar på ett delat resultat. Dina egna markeringar påverkas inte.</span><a class="btn small" href="${location.pathname}">Öppna min egen app</a></div>
    <div><p class="eyebrow">Flashcards · Kolets kemi</p><h1 style="font-size:clamp(2rem,5vw,2.8rem);margin-top:4px">${esc(whose)}</h1>${when?`<p class="muted" style="margin-top:6px">Delat ${when}</p>`:''}</div>
    <div class="res-big"><div><b style="color:var(--ok)">${r.green}</b><span>Kan (gröna)</span></div><div><b style="color:var(--warn)">${r.yellow}</b><span>Kan lite (gula)</span></div><div><b style="color:var(--bad)">${r.red}</b><span>Kan inte (röda)</span></div><div><b>${r.none}</b><span>Inte övade</span></div></div>
-   <div style="display:grid;gap:8px">${stackBar(r,n)}<p class="muted" style="font-size:.9rem">${Math.round(r.green/n*100)} % av alla ${n} kort är gröna${best?` · bästa förhör ${esc(best)}`:''}</p></div>
+   <div style="display:grid;gap:8px">${stackBar(r,n)}<p class="muted" style="font-size:.9rem">${Math.round(r.green/(n||1)*100)} % av ${n} aktuella kort är gröna${r.ignored?` · ${r.ignored} kort ignoreras (inte med på provet)`:''}${best?` · bästa förhör ${esc(best)}`:''}</p></div>
    <div style="display:grid;gap:12px"><h3>Bläddra bland korten</h3><p class="muted" style="font-size:.95rem;margin-top:-6px">Varje kort visar hur ${esc(name||'personen')} har markerat det. Vänd kortet för att se svaret.</p><div class="chips" id="sv-filter"></div><div class="deck" id="sv-deck" style="margin:0;max-width:none"></div></div>
-   <div><h3>Per ämne</h3><div class="res-topics">${TOPICS.map(tp=>{const cs=CARDS.filter(c=>c.t===tp.id),x=tallyOf(st,cs);return `<div class="res-topic"><span><b>${tp.name}</b></span>${stackBar(x,cs.length)}<span class="nums">${x.green}/${cs.length} gröna</span></div>`;}).join('')}</div></div>
+   <div><h3>Per ämne</h3><div class="res-topics">${TOPICS.map(tp=>{const cs=CARDS.filter(c=>c.t===tp.id),x=tallyOf(st,cs,ign);return `<div class="res-topic"><span><b>${tp.name}</b></span>${stackBar(x)}<span class="nums">${x.green}/${x.n} gröna</span></div>`;}).join('')}</div></div>
    ${r.red?`<div class="res-list"><h3>Röda kort – öva på dessa först</h3><p class="muted" style="font-size:.9rem">Klicka på en fråga för att se svaret. Bra att förhöra på.</p>${list('red')}</div>`:''}
    ${r.yellow?`<div class="res-list"><h3>Gula kort – kan lite</h3>${list('yellow')}</div>`:''}
    ${!r.red&&!r.yellow?`<p>Inga röda eller gula kort.</p>`:''}
@@ -1005,12 +1021,13 @@ function renderResult(){
 
 /* Bläddra i delade kort (skrivskyddat) */
 const sv={filter:'alla',topic:'alla',list:[],i:0,flipped:false};
-const SV_FILTERS=[{id:'alla',name:'Alla'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'}];
+const SV_FILTERS=[{id:'alla',name:'Alla'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'},{id:'ignored',name:'Ignorerade'}];
 function buildSharedDeck(){
-  if(!SHARED)return;const st=SHARED.st;
-  sv.list=CARDS.filter(c=>(sv.topic==='alla'||c.t===sv.topic)&&(sv.filter==='alla'||(sv.filter==='none'?!st[c.id]:st[c.id]===sv.filter)));
+  if(!SHARED)return;const st=SHARED.st,ig=SHARED.ign;
+  const ok=c=>{if(sv.filter==='alla')return true;if(sv.filter==='ignored')return !!ig[c.id];if(ig[c.id])return false;return sv.filter==='none'?!st[c.id]:st[c.id]===sv.filter;};
+  sv.list=CARDS.filter(c=>(sv.topic==='alla'||c.t===sv.topic)&&ok(c));
   sv.i=0;sv.flipped=false;
-  const r=tallyOf(st);
+  const r=tallyOf(st,CARDS,ig);
   $('#sv-filter').innerHTML=SV_FILTERS.map(f=>`<button type="button" class="chip" aria-pressed="${f.id===sv.filter}" data-f="${f.id}">${f.name}${f.id!=='alla'?` (${r[f.id]})`:''}</button>`).join('')
    +`<select id="sv-topic" aria-label="Ämne" style="padding:4px 10px;font-size:.9rem"><option value="alla">Alla ämnen</option>${TOPICS.map(t=>`<option value="${t.id}"${t.id===sv.topic?' selected':''}>${t.name}</option>`).join('')}</select>`;
   $('#sv-filter').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{sv.filter=b.dataset.f;buildSharedDeck();});
@@ -1019,18 +1036,18 @@ function buildSharedDeck(){
 }
 function svGo(i){if(i<0||i>=sv.list.length)return;sv.i=i;sv.flipped=false;renderSharedCard();}
 function renderSharedCard(){
-  const deck=$('#sv-deck'),st=SHARED.st;
+  const deck=$('#sv-deck'),st=SHARED.st,ig=SHARED.ign;
   if(!sv.list.length){deck.innerHTML=`<div class="done"><p class="muted">Inga kort matchar filtret.</p></div>`;return;}
-  const c=sv.list[sv.i],s=st[c.id],n=sv.list.length;
+  const c=sv.list[sv.i],s=st[c.id],gi=!!ig[c.id],n=sv.list.length;
   deck.innerHTML=`<div class="deck-meta"><span>${TOPIC[c.t].name}</span><span>Kort ${sv.i+1} av ${n}</span></div>
-  <div class="flip${sv.flipped?' on':''}" id="sv-flip" tabindex="0" role="button" aria-label="Vänd kortet">
+  <div class="flip${sv.flipped?' on':''}${gi?' ign':''}" id="sv-flip" tabindex="0" role="button" aria-label="Vänd kortet">
     <div class="flip-in">
-      <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(s)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att se svaret</p></div>
-      <div class="face back"><div class="face-head"><span class="tag">Svar</span>${badge(s)}</div><p class="a">${fmt(c.a)}</p>${c.m?`<div class="mol">${molSVG(MOLS[c.m])}</div>`:''}</div>
+      <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(s,gi)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att se svaret</p></div>
+      <div class="face back"><div class="face-head"><span class="tag">Svar</span>${badge(s,gi)}</div><p class="a">${fmt(c.a)}</p>${c.m?`<div class="mol">${molSVG(MOLS[c.m])}</div>`:''}</div>
     </div>
   </div>
   <div class="deck-nav"><button class="btn small" type="button" id="sv-prev" ${sv.i===0?'disabled':''}>← Föregående</button><span class="pos">${sv.i+1} / ${n}</span><button class="btn small" type="button" id="sv-next" ${sv.i===n-1?'disabled':''}>Nästa →</button></div>
-  <div class="dots">${sv.list.map((x,i)=>`<button type="button" class="${st[x.id]||''}${i===sv.i?' cur':''}" data-i="${i}" aria-label="Kort ${i+1}${st[x.id]?', '+STATUS[st[x.id]].label:''}"></button>`).join('')}</div>`;
+  <div class="dots">${sv.list.map((x,i)=>`<button type="button" class="${ig[x.id]?'ignored':(st[x.id]||'')}${i===sv.i?' cur':''}" data-i="${i}" aria-label="Kort ${i+1}${ig[x.id]?', ignoreras':st[x.id]?', '+STATUS[st[x.id]].label:''}"></button>`).join('')}</div>`;
   const f=$('#sv-flip');f.onclick=()=>{sv.flipped=!sv.flipped;f.classList.toggle('on',sv.flipped);};
   $('#sv-prev').onclick=()=>svGo(sv.i-1);$('#sv-next').onclick=()=>svGo(sv.i+1);
   deck.querySelectorAll('.dots button').forEach(b=>b.onclick=()=>svGo(+b.dataset.i));
