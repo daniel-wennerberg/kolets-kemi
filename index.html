@@ -242,7 +242,17 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
 .share{max-width:680px;margin:0 auto;display:grid;gap:18px}
 .field{display:grid;gap:6px}
 .field input{font:inherit;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);min-width:0;width:100%}
-#share-link{font-family:var(--mono);font-size:.85rem}
+#share-link,#move-link{font-family:var(--mono);font-size:.85rem}
+.move-body{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.move-side{flex:1 1 240px;display:grid;gap:12px;min-width:0}
+.qr{width:184px;height:184px;flex:none;background:#fff;border-radius:12px;padding:10px;display:grid;place-items:center;border:1.5px solid var(--line)}
+.qr svg{width:100%;height:100%;display:block}
+.qr:empty{display:none}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100vw - 32px)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.imp-cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.imp-cmp>div{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px;align-content:start;min-width:0}
+@media (max-width:560px){.imp-cmp{grid-template-columns:1fr}}
 .res{max-width:760px;margin:0 auto;display:grid;gap:24px}
 .res-banner{background:var(--accent-soft);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;font-size:.95rem}
 .res-big{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
@@ -371,7 +381,20 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
       <div class="row"><button class="btn primary" type="button" id="share-copy">Kopiera länk</button><button class="btn" type="button" id="share-native" hidden>Dela via mobilen…</button><span id="share-msg" class="muted" role="status"></span></div>
     </div>
     <p class="muted" style="font-size:.9rem">Länken visar resultatet just nu. Har du övat mer och vill visa det nya resultatet skickar du en ny länk.</p>
+    <div class="setup move" id="move">
+      <div><h3>Fortsätt på en annan enhet</h3><p class="muted" style="margin-top:6px">Flytta alla dina markeringar, ignorerade kort och ditt bästa förhör till en annan dator, mobil eller surfplatta. Skanna QR-koden med mobilkameran, eller skicka länken till dig själv och öppna den på den andra enheten.</p></div>
+      <div class="move-body"><div class="qr" id="move-qr" aria-label="QR-kod för att fortsätta på en annan enhet"></div>
+        <div class="move-side"><div class="field"><label for="move-link" class="eyebrow">Flyttlänk</label><input id="move-link" readonly></div>
+        <div class="row"><button class="btn primary" type="button" id="move-copy">Kopiera flyttlänk</button><button class="btn" type="button" id="move-native" hidden>Skicka till mig själv…</button></div>
+        <span id="move-msg" class="muted" role="status"></span></div></div>
+      <p class="muted" style="font-size:.9rem">Länken är en ögonblicksbild, inte en automatisk synk. Övar du vidare på den andra enheten och vill tillbaka hit gör du en ny flyttlänk där. Skicka inte flyttlänken till någon annan – använd delningslänken ovan för det.</p>
+    </div>
   </div>
+</section>
+
+<!-- FLYTTA IN FRÅN ANNAN ENHET -->
+<section class="view" id="v-flytta" hidden>
+  <div id="import"></div>
 </section>
 
 <!-- DELAT RESULTAT -->
@@ -1346,14 +1369,30 @@ function encodeIgn(ig,L=CARDS){let s='';for(let i=0;i<L.length;i+=4){let v=0;for
 function decodeIgn(s,L=CARDS){const ig={};for(let j=0;j<(s||'').length;j++){const v=parseInt(s[j],16);if(isNaN(v))continue;for(let k=0;k<4;k++)if(v&(1<<k)&&L[4*j+k])ig[L[4*j+k].id]=true;}return ig;}
 const tallyOf=(st,cs=CARDS,ign={})=>{const r={red:0,yellow:0,green:0,none:0,ignored:0,n:0};cs.forEach(c=>{if(ign[c.id]){r.ignored++;return;}r.n++;r[st[c.id]||'none']++;});return r;};
 const stackBar=(r,_n)=>{const n=r.n||1;return `<div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div>`;};
-function shareLink(){
+function stateParams(){
   const p=new URLSearchParams({n:(store.name||'').trim(),r:encodeStatus(store.status,CARDS),t:Date.now().toString(36)});
   Object.values(SOURCES).forEach(S=>{if(S.pr[0]==='r')return;const r=encodeStatus(store.status,S.cards);if(r)p.set(S.pr[0],r);const g=encodeIgn(store.ignored,S.cards);if(g)p.set(S.pr[1],g);});
   p.set('k',store.source);
   if(store.best)p.set('b',store.best);
   const ig=encodeIgn(store.ignored,CARDS);if(ig)p.set('i',ig);
-  return SHARE_BASE+'?'+p.toString();
+  return p;
 }
+const shareLink=()=>SHARE_BASE+'?'+stateParams().toString();
+function moveLink(){const p=stateParams();p.set('f','1');if(!store.showIgnored)p.set('h','1');return SHARE_BASE+'?'+p.toString();}
+function decodeState(p){return {name:(p.get('n')||'').slice(0,30),st:Object.assign({},...Object.values(SOURCES).map(S=>decodeStatus(p.get(S.pr[0]),S.cards))),ign:Object.assign({},...Object.values(SOURCES).map(S=>decodeIgn(p.get(S.pr[1]),S.cards))),src:SOURCES[p.get('k')]?p.get('k'):'instudering',best:p.get('b'),t:parseInt(p.get('t')||'',36),showIgnored:p.get('h')!=='1'};}
+const fmtWhen=t=>isNaN(t)?'':new Date(t).toLocaleString('sv-SE',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+let qrLib=null;
+function loadQR(){if(window.qrcode)return Promise.resolve();if(qrLib)return qrLib;qrLib=new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';sc.onload=ok;sc.onerror=()=>{qrLib=null;no();};document.head.appendChild(sc);});return qrLib;}
+function renderMove(){
+  const url=moveLink();$('#move-link').value=url;$('#move-native').hidden=!navigator.share;$('#move-msg').textContent='';
+  loadQR().then(()=>{const q=qrcode(0,'L');q.addData(url);q.make();$('#move-qr').innerHTML=q.createSvgTag({cellSize:4,margin:0,scalable:true});}).catch(()=>{$('#move-qr').innerHTML='';});
+}
+$('#move-copy').onclick=()=>{
+  const v=$('#move-link').value;
+  const fallback=()=>{const i=$('#move-link');i.focus();i.select();$('#move-msg').textContent='Kopiera den markerade länken (Cmd/Ctrl + C).';};
+  try{navigator.clipboard.writeText(v).then(()=>{$('#move-msg').textContent='Kopierad. Öppna länken på den andra enheten.';},fallback);}catch(e){fallback();}
+};
+$('#move-native').onclick=()=>{navigator.share({title:'Kolets kemi – fortsätt här',url:moveLink()}).catch(()=>{});};
 function renderShare(){
   $('#share-name').value=store.name||'';
   const row=k=>{const S=SOURCES[k],r=tallyOf(store.status,S.cards,store.ignored);return `<p style="font-weight:700;margin:6px 0 4px">${S.name}</p><div class="tally" style="margin-bottom:6px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span><span class="muted">${r.none} omarkerade</span>${r.ignored?`<span class="muted">${r.ignored} ignoreras</span>`:''}</div>${stackBar(r)}`;};
@@ -1361,8 +1400,9 @@ function renderShare(){
   $('#share-link').value=shareLink();
   $('#share-native').hidden=!navigator.share;
   $('#share-msg').textContent='';
+  renderMove();
 }
-$('#share-name').addEventListener('input',e=>{store.name=e.target.value;save();$('#share-link').value=shareLink();});
+$('#share-name').addEventListener('input',e=>{store.name=e.target.value;save();$('#share-link').value=shareLink();renderMove();});
 $('#share-copy').onclick=()=>{
   const v=$('#share-link').value,done=()=>{$('#share-msg').textContent='Länken är kopierad. Klistra in den i ett sms eller chatt.';};
   const fallback=()=>{const i=$('#share-link');i.focus();i.select();$('#share-msg').textContent='Kopiera den markerade länken (Cmd/Ctrl + C).';};
@@ -1374,13 +1414,35 @@ $('#share-native').onclick=()=>{
 };
 
 /* Delat resultat (öppnad länk) */
-const SHARED=(()=>{try{const p=new URLSearchParams(location.search);if(!p.has('r'))return null;
-  return {name:(p.get('n')||'').slice(0,30),st:Object.assign({},...Object.values(SOURCES).map(S=>decodeStatus(p.get(S.pr[0]),S.cards))),ign:Object.assign({},...Object.values(SOURCES).map(S=>decodeIgn(p.get(S.pr[1]),S.cards))),src:SOURCES[p.get('k')]?p.get('k'):'instudering',best:p.get('b'),t:parseInt(p.get('t')||'',36)};}catch(e){return null;}})();
+const SHARED=(()=>{try{const p=new URLSearchParams(location.search);if(!p.has('r')||p.has('f'))return null;return decodeState(p);}catch(e){return null;}})();
+
+/* Fortsätt från annan enhet (flyttlänk) */
+let IMPORT=(()=>{try{const p=new URLSearchParams(location.search);if(!p.has('r')||!p.has('f'))return null;return decodeState(p);}catch(e){return null;}})();
+function sumAll(st,ign){return Object.values(SOURCES).reduce((a,S)=>{const r=tallyOf(st,S.cards,ign);a.marked+=r.red+r.yellow+r.green;a.ignored+=r.ignored;return a;},{marked:0,ignored:0});}
+function renderImport(){
+  if(!IMPORT)return;
+  const I=IMPORT,inc=sumAll(I.st,I.ign),cur=sumAll(store.status,store.ignored),when=fmtWhen(I.t);
+  const box=(h,x,best,nm)=>`<div><p class="eyebrow">${h}</p>${nm?`<p><b>${esc(nm)}</b></p>`:''}<p><b>${x.marked}</b> markerade kort</p><p><b>${x.ignored}</b> ignorerade kort</p><p class="muted">Bästa förhör: ${best?esc(best):'–'}</p></div>`;
+  const rows=Object.values(SOURCES).map(S=>{const r=tallyOf(I.st,S.cards,I.ign);return `<p style="font-weight:700;margin:6px 0 4px">${S.name}</p><div class="tally" style="margin-bottom:6px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span>${r.ignored?`<span class="muted">${r.ignored} ignoreras</span>`:''}</div>${stackBar(r)}`;}).join('');
+  $('#import').innerHTML=`<div class="share">
+   <div><p class="eyebrow">Fortsätt på den här enheten</p><h1 style="font-size:clamp(1.8rem,5vw,2.5rem);margin-top:4px">Hämta framstegen hit?</h1>${when?`<p class="muted" style="margin-top:6px">Sparat ${when}</p>`:''}</div>
+   <div class="setup">${rows}</div>
+   ${cur.marked||cur.ignored||store.best?`<div class="imp-cmp">${box('Från länken',inc,I.best,I.name)}${box('Redan på den här enheten',cur,store.best,store.name)}</div>
+   <p class="muted" style="font-size:.95rem">Den här enheten har redan egna markeringar. <b>Ersätt</b> gör den till en exakt kopia av länken. <b>Slå ihop</b> behåller kort som bara är markerade här och tar länkens färg där båda har markerat.</p>`:''}
+   <div class="row"><button class="btn primary" type="button" id="imp-replace">${cur.marked||cur.ignored?'Ersätt med länkens framsteg':'Hämta framstegen'}</button>${cur.marked||cur.ignored?`<button class="btn" type="button" id="imp-merge">Slå ihop</button>`:''}<button class="btn" type="button" id="imp-cancel">Avbryt</button></div>
+  </div>`;
+  const done=msg=>{IMPORT=null;history.replaceState(null,'',location.pathname+'#start');$('#gsrc').value=store.source;mmSel=SRC().topics[0].id;fc.topic='alla';fc.filter='alla';renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();route();if(msg)toastMsg(msg);};
+  $('#imp-replace').onclick=()=>{store.status=Object.assign({},I.st);store.ignored=Object.assign({},I.ign);store.best=I.best||null;if(I.name)store.name=I.name;store.source=I.src;store.showIgnored=I.showIgnored;save();done('Klart! Du kan fortsätta här.');};
+  if($('#imp-merge'))$('#imp-merge').onclick=()=>{Object.assign(store.status,I.st);Object.assign(store.ignored,I.ign);
+    const sc=b=>b?(+b.split('/')[0])/(+b.split('/')[1]):-1;if(sc(I.best)>sc(store.best))store.best=I.best;if(I.name&&!store.name)store.name=I.name;save();done('Ihopslaget! Du kan fortsätta här.');};
+  $('#imp-cancel').onclick=()=>done('');
+}
+function toastMsg(m){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.appendChild(t);}t.textContent=m;t.className='show';clearTimeout(toastMsg.h);toastMsg.h=setTimeout(()=>t.className='',3200);}
 function renderResult(){
   if(!SHARED)return;
   const {name,st,ign,best,t}=SHARED,S=SOURCES[sv.src],r=tallyOf(st,S.cards,ign),n=r.n;
   const whose=name?(/[sxz]$/i.test(name)?name:name+'s')+' resultat':'Delat resultat';
-  const when=isNaN(t)?'':new Date(t).toLocaleString('sv-SE',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const when=fmtWhen(t);
   const list=s=>S.cards.filter(c=>!ign[c.id]&&st[c.id]===s).map(c=>`<details class="${s}"><summary>${fmt(c.q)} <span class="muted" style="font-weight:400">· ${TOPIC[c.t].name}${c.p?', s. '+c.p:''}</span></summary><p>${fmt(c.a)}</p></details>`).join('');
   $('#result').innerHTML=`<div class="res">
    <div class="res-banner"><span>Du tittar på ett delat resultat. Dina egna markeringar påverkas inte.</span><a class="btn small" href="${location.pathname}">Öppna min egen app</a></div>
@@ -1437,8 +1499,8 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ ROUTING ============ */
-const VIEWS=['start','kort','forhor','karta','bilder','dela','resultat'];
-const currentView=()=>{const h=location.hash.slice(1);if(VIEWS.includes(h)&&(h!=='resultat'||SHARED))return h;return SHARED?'resultat':'start';};
+const VIEWS=['start','kort','forhor','karta','bilder','dela','resultat','flytta'];
+const currentView=()=>{if(IMPORT)return 'flytta';const h=location.hash.slice(1);if(h==='flytta')return 'start';if(VIEWS.includes(h)&&(h!=='resultat'||SHARED))return h;return SHARED?'resultat':'start';};
 let lastView=null;
 function route(){
   const v=currentView();
@@ -1446,12 +1508,12 @@ function route(){
   document.querySelectorAll('nav.tabs a').forEach(a=>a.setAttribute('aria-current',a.getAttribute('href')==='#'+v?'page':'false'));
   if(v==='forhor'&&lastView!=='forhor'&&!qz.list.length)quizSetup();
   if(v==='dela')renderShare();
-  $('#gsrc-wrap').hidden=v==='resultat';
+  $('#gsrc-wrap').hidden=v==='resultat'||v==='flytta';
   if(v!==lastView)window.scrollTo(0,0);
   lastView=v;
 }
 window.addEventListener('hashchange',route);
 
 $('#gsrc').value=store.source;mmSel=SRC().topics[0].id;
-renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();renderResult();buildSharedDeck();route();
+renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();renderResult();buildSharedDeck();renderImport();route();
 </script>
