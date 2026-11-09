@@ -133,6 +133,8 @@ section.view{padding-top:28px}
 .clear-row{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap}
 .chip.gear{display:inline-flex;align-items:center;gap:6px}
 .chip.gear[aria-expanded="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.src-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.src-row select{font-weight:700}
 .sec-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .dd{position:relative}
 .settings{position:absolute;right:0;top:calc(100% + 8px);z-index:4;width:min(420px,calc(100vw - 32px));background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:4px 18px;display:grid;box-shadow:0 12px 32px rgba(10,20,30,.18)}
@@ -318,6 +320,7 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
       <div class="settings" id="fc-settings" role="menu" hidden></div>
     </div>
   </div>
+  <div class="src-row"><label for="fc-source" class="eyebrow">Källa</label><select id="fc-source"><option value="instudering">Instuderingsfrågor</option><option value="stella">Stella KEMI</option></select><span class="muted" id="fc-source-note" style="font-size:.9rem"></span></div>
   <p class="muted" style="margin-top:6px">Läs frågan, svara i huvudet och vänd kortet. Markera sedan rött, gult eller grönt. Du kan bläddra fram och tillbaka och ändra markeringen när du vill.</p>
   <div class="toolbar">
     <div class="chips" id="fc-topics"></div>
@@ -520,6 +523,138 @@ const CARDS = [
  {t:'fossila',q:'Vad tillverkas plast oftast av?',a:'<strong>Råolja.</strong> Plast är polymerer, t.ex. polyeten. När plast eldas upp bildas koldioxid.'}
 ];
 CARDS.forEach((c,i)=>c.id='c'+i);
+/* ============ STELLA KEMI 7–9, kapitlet Kolets kemi (s. 100–141) ============ */
+const STELLA_TOPICS = [
+ {id:'s-kol',name:'Kolatomen',pages:'s. 100–107'},
+ {id:'s-kolv',name:'Kolväten',pages:'s. 108–117'},
+ {id:'s-forb',name:'Förbränning & fossila bränslen',pages:'s. 118–124'},
+ {id:'s-alk',name:'Alkoholer',pages:'s. 125–130'},
+ {id:'s-syr',name:'Organiska syror & estrar',pages:'s. 131–137'},
+ {id:'s-ten',name:'Tensider',pages:'s. 138–141'}
+];
+const STELLA_CARDS = [
+ // Kolatomen
+ {t:'s-kol',p:100,q:'Varför är kolatomen en perfekt byggsten?',a:'Varje kolatom kan <strong>binda sig till fyra andra atomer</strong>. Därför kan den bilda stora tredimensionella molekyler och sättas ihop till enormt många olika molekyler.'},
+ {t:'s-kol',p:100,q:'Vad är organiska föreningar?',a:'Molekyler med kolatomer som <strong>finns i levande organismer</strong>.'},
+ {t:'s-kol',p:100,q:'Ungefär hur många kemiska föreningar med kol känner vi till?',a:'Ungefär <strong>20 miljoner</strong>.'},
+ {t:'s-kol',p:100,q:'Vad är en kolförening?',a:'En kemisk förening med <strong>kolatomer och andra sorters atomer</strong>, till exempel väte, syre, kväve och svavel.'},
+ {t:'s-kol',p:100,q:'Ge tre exempel på kolföreningar från boken.',a:'<strong>Koldioxid</strong> {CO2}, <strong>kolmonoxid</strong> CO (liknar koldioxid men är giftig) och <strong>kolsyra</strong> {H2CO3}.',m:'koldioxid'},
+ {t:'s-kol',p:100,q:'Vad händer när man kolsyrar vatten?',a:'Koldioxid bubblar ner och <strong>reagerar med vattnet så att det bildas kolsyra</strong>, {H2CO3}.'},
+ {t:'s-kol',p:101,q:'Nämn exempel på bränslen, material och levande organismer som innehåller kolatomer.',a:'Fossila bränslen: <strong>naturgas, olja, stenkol</strong>. Material: <strong>trä, papper, plast</strong>. Levande organismer: <strong>träd, djur, svampar</strong> och vi människor.'},
+ {t:'s-kol',p:102,q:'Vilka ämnen består av enbart kolatomer?',a:'<strong>Grillkol, grafit, diamant, fulleren och grafen.</strong> Skillnaden mellan dem är hur kolatomerna sitter ihop.'},
+ {t:'s-kol',p:102,q:'Diamant: hur sitter atomerna och vilka egenskaper får den?',a:'Kolatomerna sitter i en sorts <strong>pyramidform, tetraeder</strong>, som är extremt stark. Diamant är det <strong>hårdaste ämnet i naturen</strong> och <strong>leder inte elektricitet</strong>.'},
+ {t:'s-kol',p:102,q:'Hur bildas naturliga diamanter, och när gjordes den första syntetiska?',a:'När kol utsätts för <strong>högt tryck och hög temperatur</strong> nere i berggrunden. Världens första syntetiska diamant gjordes i <strong>Västerås år 1954</strong>.'},
+ {t:'s-kol',p:102,q:'Grafit: hur är den uppbyggd och vad används den till?',a:'<strong>Lager av sexhörningar (hexagoner).</strong> Inom lagret är atomerna hårt bundna, men mellan lagren är bindningarna svaga, så lagren glider och smetas ut. Används i <strong>blyertspennor och smörjmedel</strong>. Leder elektricitet.'},
+ {t:'s-kol',p:102,q:'Vad är fulleren?',a:'Ett lager med sexhörningar som är <strong>format som en boll</strong>. Tillverkas genom upphettning av grafit, men bildas också när ved och olja brinner. Leder elektricitet.'},
+ {t:'s-kol',p:103,q:'Vad är grafen och vad kan det användas till?',a:'Som grafit men med <strong>ett enda platt lager</strong>. Leder elektricitet och är ungefär <strong>100 gånger starkare än stål</strong> i förhållande till vikten. Kan användas i böjbara skärmar och hållbar elektronik.'},
+ {t:'s-kol',p:103,q:'Vilka av diamant, grafit och grafen leder elektricitet?',a:'<strong>Grafit och grafen</strong> (och fulleren). Diamant leder inte.'},
+ {t:'s-kol',p:103,q:'Vad är amorft kol?',a:'Rent kol där kolatomerna <strong>sitter huller om buller</strong>, till exempel grillkol.'},
+ {t:'s-kol',p:103,q:'Vad är aktivt kol bra till?',a:'Det är amorft kol som kan <strong>binda till sig andra ämnen</strong>. Används för att rena luft eller vatten från kemikalier, och man kan äta det vid förgiftning.'},
+ {t:'s-kol',p:103,q:'Vad är skillnaden mellan brunkol och stenkol?',a:'<strong>Brunkol</strong> innehåller ungefär <strong>75 %</strong> kol, <strong>stenkol</strong> ungefär <strong>90 %</strong>. Båda är amorft kol och används som bränsle i kraftverk för elektricitet och värme.'},
+ {t:'s-kol',p:104,q:'Hur är kolatomen uppbyggd?',a:'Atomnummer 6: <strong>6 protoner och 6 elektroner</strong>. <strong>2</strong> elektroner i innersta skalet och <strong>4</strong> i det yttersta. Där finns plats för 8, så kolatomen har <strong>4 lediga platser</strong>.'},
+ {t:'s-kol',p:104,q:'Hur är väteatomen uppbyggd?',a:'Atomnummer 1: <strong>1 proton och 1 elektron</strong>. Skalet har plats för 2, så väteatomen har <strong>1 ledig plats</strong>.'},
+ {t:'s-kol',p:104,q:'Varför bildar atomer bindningar?',a:'De vill bli <strong>stabila</strong>, och det blir de med <strong>fulla elektronskal</strong>. Genom att dela elektroner fyller de varandras lediga platser.'},
+ {t:'s-kol',p:104,q:'Vad är en elektronparbindning?',a:'När <strong>två atomer delar på två elektroner</strong> (ett elektronpar).'},
+ {t:'s-kol',p:104,q:'Hur bildas en metanmolekyl?',a:'En kolatom och fyra väteatomer <strong>delar elektroner</strong> så att alla får fulla skal. Det blir <strong>fyra elektronparbindningar</strong>, {CH4}.',m:'metan'},
+ {t:'s-kol',p:104,q:'Vad är en strukturformel?',a:'Ett sätt att rita molekylen med <strong>kemiska tecken</strong> där elektronparbindningarna ritas som <strong>streck</strong>.'},
+ {t:'s-kol',p:105,q:'Hur många atomer kan bindas till en kolatom och en väteatom?',a:'Kolatom: <strong>4</strong>. Väteatom: <strong>1</strong>.'},
+ {t:'s-kol',p:107,q:'Varför används kol i filter?',a:'Kol <strong>binder sig lätt till olika ämnen</strong>, så det kan ta bort dofter, färger och gifter (undersökningen Rena med kol).'},
+ // Kolväten
+ {t:'s-kolv',p:108,q:'Vad är ett kolväte?',a:'En kolförening som <strong>bara består av kolatomer och väteatomer</strong>.'},
+ {t:'s-kolv',p:108,q:'Vad är alkanserien?',a:'En serie kolväten där varje nytt kolväte har <strong>en kolatom och två väteatomer mer</strong>. Kolvätena kallas <strong>alkaner</strong>.'},
+ {t:'s-kolv',p:109,q:'Vilka är alkanseriens fyra första kolväten?',a:'<strong>Metan {CH4}, etan {C2H6}, propan {C3H8}, butan {C4H10}.</strong>'},
+ {t:'s-kolv',p:109,q:'Vad är skillnaden mellan molekylformel, strukturformel och molekylmodell?',a:'<strong>Molekylformel:</strong> vilka och hur många atomer. <strong>Strukturformel:</strong> hur atomerna sitter ihop, med bindningar som streck. <strong>Molekylmodell:</strong> kulor som visar molekylen i tre dimensioner.'},
+ {t:'s-kolv',p:110,q:'Metan: egenskaper och användning?',a:'Det <strong>enklaste kolvätet</strong>, en gas i rumstemperatur och en <strong>kraftfull växthusgas</strong>. Brinner lätt och används som bränsle i fordon och kraftverk.',m:'metan'},
+ {t:'s-kolv',p:110,q:'Vad är skillnaden mellan fossilgas och biogas?',a:'Båda är metan. <strong>Fossilgas (naturgas)</strong> finns under marken. <strong>Biogas</strong> är förnybar och bildas när bakterier bryter ner organiskt material, t.ex. matrester.'},
+ {t:'s-kolv',p:110,q:'Etan: vad används den till?',a:'En gas som brinner lätt. Används som bränsle men <strong>framför allt för att tillverka plast och kemikalier</strong>.',m:'etan'},
+ {t:'s-kolv',p:110,q:'Vad är gasol?',a:'En <strong>blandning av propan och butan</strong>. Används i grillar, gasolkök och brännarna i kemisalen.',m:'propan'},
+ {t:'s-kolv',p:110,q:'Vilka kolväten har 5–8 kolatomer, och vad finns de i?',a:'<strong>Pentan (5), hexan (6), heptan (7), oktan (8).</strong> Flytande i rumstemperatur, brinner lätt och finns i <strong>bensin</strong>.',m:'pentan'},
+ {t:'s-kolv',p:110,q:'Hur påverkar kolkedjans längd alkanens egenskaper?',a:'Korta kedjor har <strong>lägre kokpunkt</strong> och blir lättare gas. Ju längre kedja, desto högre kokpunkt: först gaser, sedan vätskor och till sist fasta ämnen.'},
+ {t:'s-kolv',p:111,q:'Vilka alkaner (1–20 kol) är gaser, vätskor och fasta?',a:'<strong>1–4 kol:</strong> gas (metan–butan). <strong>5–16 kol:</strong> flytande (pentan–hexadekan). <strong>17–20 kol:</strong> fast.'},
+ {t:'s-kolv',p:111,q:'Kokpunkt för metan, etan, propan, butan och pentan?',a:'Metan <strong>−162 °C</strong>, etan <strong>−89 °C</strong>, propan <strong>−42 °C</strong>, butan <strong>0 °C</strong>, pentan <strong>36 °C</strong>.'},
+ {t:'s-kolv',p:112,q:'Hur ritar du strukturformeln för butan?',a:'1. Rita <strong>4 C</strong> (butan är nr 4). 2. Sätt ut bindningar så att varje kol har <strong>fyra</strong>. 3. Sätt <strong>H</strong> där bindningen inte går till ett annat kol. 4. Räkna: 4 kol och 10 väte → {C4H10}.',m:'butan'},
+ {t:'s-kolv',p:112,q:'Vad är isomerer?',a:'Ämnen med <strong>samma molekylformel men olika strukturformel</strong>. Exempel: n-butan och isobutan, båda {C4H10}.',m:'isobutan'},
+ {t:'s-kolv',p:113,q:'Varför kokar isobutan lättare än n-butan?',a:'Isobutans molekyler <strong>kan inte ligga lika nära varandra</strong>. N-butan kokar vid <strong>0 °C</strong>, isobutan vid <strong>−12 °C</strong>.'},
+ {t:'s-kolv',p:113,q:'Hur många isomerer har oktan?',a:'<strong>18</strong>. Ju längre kolkedja, desto fler isomerer.'},
+ {t:'s-kolv',p:113,q:'Vad är skillnaden mellan alkaner, alkener och alkyner?',a:'<strong>Alkaner:</strong> bara enkelbindningar (-an). <strong>Alkener:</strong> en eller flera dubbelbindningar (-en). <strong>Alkyner:</strong> en eller flera trippelbindningar (-yn).'},
+ {t:'s-kolv',p:113,q:'Vad är en dubbel- eller trippelbindning?',a:'När två kolatomer binds ihop med <strong>två eller tre elektronparbindningar</strong>.'},
+ {t:'s-kolv',p:113,q:'Varför har eten färre väteatomer än etan?',a:'Två elektronpar används för att binda ihop kolatomerna. Därför finns <strong>bara två elektroner kvar</strong> hos varje kolatom för att binda väte: {C2H4} i stället för {C2H6}.',m:'eten'},
+ {t:'s-kolv',p:114,q:'Vad är 1-buten och 2-buten?',a:'Två <strong>isomerer av buten</strong>. Dubbelbindningen sitter efter den första respektive den andra kolatomen.'},
+ {t:'s-kolv',p:114,q:'Hur ritar du strukturformeln för 2-penten?',a:'<strong>Pent</strong> = 5 kol. <strong>-en</strong> = en dubbelbindning. <strong>2</strong> = efter andra kolatomen: C–C=C–C–C. Sätt sedan ut väte så att varje kol har fyra bindningar → {C5H10}.'},
+ {t:'s-kolv',p:115,q:'Varför reagerar alkener och alkyner lättare än alkaner?',a:'En av elektronparbindningarna i dubbel- eller trippelbindningen <strong>bryts lätt upp och binder till andra atomer</strong>. De är <strong>reaktiva</strong>.'},
+ {t:'s-kolv',p:115,q:'Vad används etyn till?',a:'Etyn (<strong>acetylen</strong>) brinner med syrgas med en <strong>mycket het låga</strong> och används vid <strong>svetsning</strong>.',m:'etyn'},
+ {t:'s-kolv',p:115,q:'Hur tillverkas polyeten?',a:'Dubbelbindningarna i många <strong>etenmolekyler</strong> bryts och kolatomerna binds till varandra. Det bildas en <strong>jättelång molekyl</strong>, polyeten, som är plasten i plastfolie.'},
+ {t:'s-kolv',p:115,q:'Vilken reagerar lättast, etan eller eten?',a:'<strong>Eten</strong>, eftersom den har en dubbelbindning.'},
+ {t:'s-kolv',p:115,q:'Varför blir bananer bruna snabbare bredvid äpplen?',a:'Äpplen utsöndrar <strong>eten</strong>, som gör att bananer mognar snabbare.'},
+ {t:'s-kolv',p:117,q:'Vad var en kolmila till för?',a:'Att framställa <strong>träkol och tjära</strong>. Tjära skyddade trä mot fukt, t.ex. på båtar, och består av kolväten med långa kolkedjor.'},
+ // Förbränning
+ {t:'s-forb',p:118,q:'Vad bildas när vätgas förbränns?',a:'<strong>Bara vatten.</strong> 2 {H2} + {O2} → 2 {H2O}',m:'vatten'},
+ {t:'s-forb',p:119,q:'Vad bildas när rent kol förbränns?',a:'<strong>Bara koldioxid.</strong> C + {O2} → {CO2}',m:'koldioxid'},
+ {t:'s-forb',p:119,q:'Vad bildas när kolväten förbränns?',a:'<strong>Koldioxid och vatten.</strong>'},
+ {t:'s-forb',p:119,q:'Skriv den balanserade formeln för förbränning av metan.',a:'<strong>{CH4} + 2 {O2} → {CO2} + 2 {H2O}</strong><br>Metan har fyra väteatomer, så det bildas två vattenmolekyler. Då behövs fyra syreatomer, alltså två syrgasmolekyler.'},
+ {t:'s-forb',p:119,q:'Vilka ämnen bildar koldioxid och vatten när de brinner?',a:'<strong>Alla ämnen som innehåller väte och kol</strong>: trä, plast, mat, gummi och tyg, alltså material som ursprungligen kommer från levande organismer.'},
+ {t:'s-forb',p:118,q:'Varför börjar lågan en bit ovanför bensinens yta?',a:'Bensinen <strong>måste först bli gas</strong> innan den kan brinna.'},
+ {t:'s-forb',p:120,q:'Varför är bensin lättare att antända än diesel?',a:'Bensin har <strong>kortare kolkedjor</strong> och övergår lättare till gas. Bränslet måste vara gas för att blandas med syrgasen i luften.'},
+ {t:'s-forb',p:120,q:'Hur bildas fossila bränslen?',a:'Döda djur och växter hamnar under marken <strong>utan syre</strong>, så de bryts inte ner. De pressas och värms under <strong>miljontals år</strong> och blir olja, kol och naturgas.'},
+ {t:'s-forb',p:120,q:'Vad använder vi fossila bränslen till?',a:'Att <strong>värma hus, tillverka elektricitet och driva fordon</strong>.'},
+ {t:'s-forb',p:121,q:'Vad är fossilgas och råolja?',a:'<strong>Fossilgas (naturgas):</strong> en blandning av gasformiga kolväten (metan, etan, propan, butan). <strong>Råolja:</strong> en blandning av kolväten som är gasformiga, flytande eller fasta.'},
+ {t:'s-forb',p:121,q:'Vad är fraktioner?',a:'De produkter som råoljan separeras i, till exempel <strong>smörjolja, diesel, bensin och fotogen</strong>.'},
+ {t:'s-forb',p:121,q:'Hur fungerar fraktionerad destillation?',a:'Råoljan hettas till <strong>400 °C i en ugn</strong> så att allt blir gas. Gasen leds in i ett <strong>torn</strong> som är varmast i botten och svalast högst upp (20 °C). Gasen stiger, <strong>kondenserar</strong> på en svalare nivå och leds ut. Ventiler släpper upp gas men hindrar vätska från att rinna ner.'},
+ {t:'s-forb',p:121,q:'Var i tornet kondenserar de olika fraktionerna?',a:'<strong>400 °C:</strong> smörjolja och asfalt. <strong>370 °C:</strong> tjockolja. <strong>300 °C:</strong> diesel. <strong>200 °C:</strong> fotogen. <strong>150 °C:</strong> bensin. <strong>20 °C:</strong> gasol, som fortfarande är gas.'},
+ {t:'s-forb',p:122,q:'Hur många kolatomer har gasol, bensin, diesel och fotogen?',a:'Gasol <strong>3–4</strong>. Bensin ungefär <strong>5–10</strong>. Diesel ungefär <strong>11–14</strong>. Fotogen ungefär <strong>10–22</strong>.'},
+ {t:'s-forb',p:122,q:'Vad används diesel och fotogen till?',a:'<strong>Diesel:</strong> bilar, lastbilar, bussar, fartyg och tåg. Måste värmas upp innan den antänds. <strong>Fotogen:</strong> fartyg och flygplan, förr i fotogenlampor.'},
+ {t:'s-forb',p:122,q:'Vad är krackning och varför används det?',a:'<strong>Långa kolväten sönderdelas till kortare</strong>, som bensin och diesel, t.ex. genom kraftig upphettning. Man behöver mer bensin och diesel än det finns i råoljan.'},
+ // Alkoholer
+ {t:'s-alk',p:125,q:'Vad är en alkohol?',a:'En molekyl som liknar ett kolväte men har <strong>en eller flera OH-grupper</strong>. Namnet slutar på <strong>-ol</strong>.'},
+ {t:'s-alk',p:125,q:'Vad är en OH-grupp?',a:'En <strong>syreatom (O) och en väteatom (H)</strong> som är bundna till varandra.'},
+ {t:'s-alk',p:125,q:'Vilka egenskaper har de flesta alkoholer?',a:'De är <strong>giftiga, färglösa vätskor med stark lukt</strong>, och en del brinner lätt. Används som bakteriedödande medel, bränsle och lösningsmedel, och för att tillverka läkemedel, plaster och hudkrämer.'},
+ {t:'s-alk',p:126,q:'Metanol: egenskaper och användning?',a:'{CH3OH}. Brinner lätt och används som bränsle. <strong>Väldigt giftig</strong>: kan skada synnerverna och leda till blindhet eller döden. Kallas <strong>träsprit</strong>.',m:'metanol'},
+ {t:'s-alk',p:126,q:'Vad är torrdestillation?',a:'Att <strong>hetta upp trä utan tillgång till syre</strong>, så att kolväten och metanol frigörs.'},
+ {t:'s-alk',p:126,q:'Varför skriver man metanol som CH₃OH och inte CH₄O?',a:'För att visa att det finns en <strong>OH-grupp</strong> och att det är en alkohol.'},
+ {t:'s-alk',p:126,q:'Etanol: vad används den till?',a:'{C2H5OH}. Finns i <strong>alkoholhaltiga drycker</strong> och är giftig. Används som bakteriedödande medel (handsprit), lösningsmedel och bränsle i spritkök.',m:'etanol'},
+ {t:'s-alk',p:126,q:'Vad är T-röd (rödsprit)?',a:'Etanol blandad med ett <strong>denatureringsmedel</strong> som gör att man kräks om man dricker den.'},
+ {t:'s-alk',p:126,q:'Vad innehåller E85?',a:'<strong>85 % etanol och 15 % bensin.</strong>'},
+ {t:'s-alk',p:126,q:'Hur framställs etanol genom jäsning?',a:'<strong>Jästsvampar bryter ner druvsocker</strong> och bildar etanol och koldioxid. Med destillation kan ren etanol sedan separeras.'},
+ {t:'s-alk',p:127,q:'Hur framställs etanol och metanol syntetiskt?',a:'Etanol: <strong>eten + vatten</strong>, {C2H4} + {H2O} → {C2H5OH} (dubbelbindningen gör det möjligt).<br>Metanol: <strong>kolmonoxid + vätgas</strong>, CO + 2 {H2} → {CH3OH}.'},
+ {t:'s-alk',p:127,q:'Varför har alkoholer lägre energiinnehåll än kolväten?',a:'Alkoholmolekyler har syreatomer som <strong>redan är bundna</strong>, så de kan inte reagera med lika mycket syre. Bensin ger 47 MJ/kg, etanol bara <strong>30</strong> och metanol <strong>23</strong> MJ/kg.'},
+ {t:'s-alk',p:125,q:'Vad skiljer etanmolekylen från etanolmolekylen?',a:'I etanol är en väteatom <strong>utbytt mot en OH-grupp</strong>.'},
+ {t:'s-alk',p:128,q:'Vad är glykol?',a:'<strong>Etandiol</strong>, {C2H4(OH)2}: två OH-grupper (<strong>tvåvärd</strong>, -diol). Frostskydd i bilars kylsystem. 50 % vatten och 50 % glykol fryser först vid <strong>−35 °C</strong>. Giftig.',m:'glykol'},
+ {t:'s-alk',p:128,q:'Vad är glycerol?',a:'<strong>Propantriol</strong>, {C3H5(OH)3}: tre OH-grupper (<strong>trevärd</strong>, -triol). Bygger upp alla fetter. Håller kvar vatten och används i hudkrämer, salvor och marsipan.',m:'glycerol'},
+ // Organiska syror och estrar
+ {t:'s-syr',p:131,q:'Vad är en organisk syra?',a:'En syra som finns i levande organismer. Den liknar kolväten och alkoholer men har en <strong>karboxylgrupp, –COOH</strong>.'},
+ {t:'s-syr',p:131,q:'Vad består karboxylgruppen av?',a:'En <strong>kolatom</strong> med en <strong>OH-grupp</strong> och en <strong>syreatom</strong> (bunden med dubbelbindning).'},
+ {t:'s-syr',p:131,q:'Varför innehåller många växter syror?',a:'Som <strong>skydd</strong> mot bakterier, svampar och växtätande djur. Exempel: brännässla, harsyra och rabarber.'},
+ {t:'s-syr',p:132,q:'Varför är organiska syror sura, och varför är de svaga?',a:'Väteatomen i OH-gruppen <strong>avges som vätejon</strong> i vatten. Men bara <strong>en liten del</strong> av molekylerna gör det, så de är svaga syror.<br>{CH3COOH} → {CH3COO}<sup>−</sup> + H<sup>+</sup>'},
+ {t:'s-syr',p:133,q:'Metansyra: vardagsnamn och var finns den?',a:'<strong>Myrsyra</strong>, {HCOOH}. Myror använder den för att skydda sig, och den finns i <strong>brännässlor</strong>.',m:'myrsyra'},
+ {t:'s-syr',p:133,q:'Etansyra: vardagsnamn och användning?',a:'<strong>Ättiksyra</strong>, {CH3COOH}. Konserverar och smaksätter mat (t.ex. gurka) och används för att tillverka plast och trälim.',m:'attiksyra'},
+ {t:'s-syr',p:134,q:'Varför smakar vin sämre om flaskan står öppen länge?',a:'Etanolen reagerar med syre och bildar <strong>etansyra och vatten</strong>.<br>{C2H5OH} + {O2} → {CH3COOH} + {H2O}'},
+ {t:'s-syr',p:134,q:'Vad är propansyra bra till?',a:'Propansyra (<strong>propionsyra</strong>), {C2H5COOH}, hindrar mögelsvampar från att bildas, t.ex. i djurfoder.'},
+ {t:'s-syr',p:134,q:'Vad består stearin av?',a:'Två organiska syror: <strong>stearinsyra</strong> (18 kol) och <strong>palmitinsyra</strong> (16 kol). Organiska syror med <strong>6 kol eller fler är fasta</strong> i rumstemperatur.'},
+ {t:'s-syr',p:134,q:'Varför tar det några sekunder att tända ett stearinljus?',a:'Stearinet måste först <strong>smälta, sugas upp i veken och bli gas</strong> innan det kan brinna.'},
+ {t:'s-syr',p:135,q:'Hur bildas en ester?',a:'<strong>Organisk syra + alkohol → ester + vatten.</strong>'},
+ {t:'s-syr',p:135,q:'Vad är estrar bra till?',a:'Estrar ger <strong>doft och smak</strong> i växter, frukter och bär. Konstgjorda estrar används för att smaksätta mat, läsk och godis.'},
+ {t:'s-syr',p:135,q:'Vilken ester bildas av etanol och etansyra?',a:'<strong>Etyletanoat</strong>, som luktar frukt.<br>{C2H5OH} + {CH3COOH} → {CH3COOC2H5} + {H2O}',m:'ester'},
+ {t:'s-syr',p:136,q:'Varför smakar konstgjorda smaker inte exakt som de naturliga?',a:'Naturliga smaker och dofter bildas av <strong>många olika ämnen</strong>, och den exakta blandningen är svår att återskapa.'},
+ {t:'s-syr',p:136,q:'Vad är en katalysator?',a:'Ett ämne som gör att en reaktion <strong>går snabbare utan att själv förbrukas</strong>. Exempel: katalysatorn i bilens avgasrör, och <strong>svavelsyra</strong> när estrar tillverkas.'},
+ {t:'s-syr',p:136,q:'Vad är en esterbindning?',a:'Den <strong>nya bindningen mellan alkoholen och den organiska syran</strong>. Syreatomen från alkoholen binder till kolatomen i karboxylgruppen, och det bildas en vattenmolekyl.'},
+ {t:'s-syr',p:137,q:'Vad är nitroglycerin?',a:'En ester av <strong>glycerol och salpetersyra</strong>: glyceroltrinitrat, C<sub>3</sub>H<sub>5</sub>(NO<sub>3</sub>)<sub>3</sub>. Exploderar lätt vid rörelse eller slag. I <strong>dynamit</strong> (Alfred Nobel) stabiliseras den. Används också som hjärtmedicin som vidgar blodkärlen.'},
+ {t:'s-syr',p:137,q:'Varför är fetter estrar?',a:'Fetter bildas när alkoholen <strong>glycerol reagerar med tre fettsyror</strong>. Ett fett har alltså <strong>tre esterbindningar</strong>. Smör är fast, olivolja flytande.'},
+ // Tensider
+ {t:'s-ten',p:138,q:'Vad är skillnaden mellan polära och opolära ämnen?',a:'<strong>Polära</strong> ämnen har ändar med <strong>olika laddning</strong>, t.ex. vatten. <strong>Opolära</strong> har ändar med <strong>lika laddning</strong>, t.ex. fett.'},
+ {t:'s-ten',p:138,q:'Varför kan vatten inte lösa fett?',a:'Vatten är polärt och fett opolärt. Ett <strong>polärt ämne kan inte lösa ett opolärt</strong>, "lika löser lika".'},
+ {t:'s-ten',p:138,q:'Vad är en tensid?',a:'Ett ämne vars molekyler har en <strong>opolär ände som liknar fett</strong> och en <strong>polär ände som liknar vatten</strong>.'},
+ {t:'s-ten',p:138,q:'Hur får tensider fett att lösas i vatten?',a:'Tensidmolekylerna bildar en <strong>bubbla</strong> där den <strong>fettlösliga änden pekar inåt</strong> och den <strong>vattenlösliga utåt</strong>. Smutsen med fett kapslas in, och eftersom bubblans utsida är vattenlöslig sköljs den bort.'},
+ {t:'s-ten',p:139,q:'Vad betyder hydrofob och hydrofil?',a:'<strong>Hydrofob</strong> = vattenskyende, den fettlösliga änden. <strong>Hydrofil</strong> = vattenälskande, den vattenlösliga änden.'},
+ {t:'s-ten',p:139,q:'Hur hänger polär, opolär, vattenlöslig, fettlöslig, hydrofil och hydrofob ihop?',a:'<strong>Polär = vattenlöslig = hydrofil</strong> (t.ex. vatten, etanol).<br><strong>Opolär = fettlöslig = hydrofob</strong> (t.ex. fett, kolväten).'},
+ {t:'s-ten',p:140,q:'Vad skiljer kolväten, alkoholer och organiska syror åt?',a:'<strong>Kolväten</strong> saknar syreatomer. <strong>Alkoholer</strong> har en OH-grupp. <strong>Organiska syror</strong> har en karboxylgrupp.'},
+ {t:'s-ten',p:141,q:'Vilka ämnen löser sig i vatten: salt, matolja, socker, etanol?',a:'<strong>Salt, socker och etanol</strong> löser sig. <strong>Matolja</strong> löser sig inte, eftersom den är opolär.'}
+];
+STELLA_CARDS.forEach((c,i)=>c.id='s'+i);
+const SOURCES={instudering:{name:'Instuderingsfrågor',topics:null,cards:null},stella:{name:'Stella KEMI',topics:STELLA_TOPICS,cards:STELLA_CARDS}};
+SOURCES.instudering.topics=TOPICS;SOURCES.instudering.cards=CARDS;
+STELLA_TOPICS.forEach(t=>TOPIC[t.id]=t);
+const SRC=()=>SOURCES[store.source]||SOURCES.instudering;
+
 
 /* Förhör – flervalsfrågor {t,q,o:[rätt, fel, fel, fel],e} och skrivfrågor {t,q,w:[svar],e} */
 const QUIZ = [
@@ -744,8 +879,8 @@ const DIAGS={
 
 /* ============ LAGRING ============ */
 const KEY='kolets-kemi-v1';
-let store={status:{},ignored:{},best:null,showIgnored:true};
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){store.best=s.best||null;store.name=s.name||"";store.status=s.status||{};store.ignored=s.ignored||{};store.showIgnored=s.showIgnored!==false;if(s.known)Object.keys(s.known).forEach(k=>{if(!store.status[k])store.status[k]='green';});}}catch(e){}
+let store={status:{},ignored:{},best:null,showIgnored:true,source:'instudering'};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){store.best=s.best||null;store.name=s.name||"";store.status=s.status||{};store.ignored=s.ignored||{};store.showIgnored=s.showIgnored!==false;store.source=SOURCES[s.source]?s.source:'instudering';if(s.known)Object.keys(s.known).forEach(k=>{if(!store.status[k])store.status[k]='green';});}}catch(e){}
 const STATUS={red:{label:'Kan inte',hint:'rött',icon:'<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'},
  yellow:{label:'Kan lite',hint:'gult',icon:'<svg viewBox="0 0 16 16"><path d="M3.5 8h9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'},
  green:{label:'Kan',hint:'grönt',icon:'<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'}};
@@ -764,19 +899,19 @@ function renderStart(){
   $('#goals').innerHTML=GOALS.map(g=>{const cs=CARDS.filter(c=>g.t.includes(c.t)),r=count(cs),n=r.n||1;
     return `<div class="goal"><div style="min-width:0"><p>${g.text}</p><div class="links">${g.t.map(t=>`<a class="chiplink" href="#kort" data-topic="${t}">${TOPIC[t].name}</a>`).join('')}</div></div>
     <div class="meter"><span>${r.green} av ${r.n} gröna${r.ignored?` · ${r.ignored} ignoreras`:''}</span><div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div></div></div>`;}).join('');
-  const r=count(CARDS);
-  $('#total-progress').textContent=`${r.green} gröna · ${r.yellow} gula · ${r.red} röda av ${r.n} kort`+(r.ignored?` · ${r.ignored} ignoreras`:'')+(store.best?` · bästa förhör ${store.best}`:'');
+  const line=k=>{const r=count(SOURCES[k].cards);return `${SOURCES[k].name}: ${r.green} gröna · ${r.yellow} gula · ${r.red} röda av ${r.n}`+(r.ignored?` · ${r.ignored} ignoreras`:'');};
+  $('#total-progress').innerHTML=esc(line('instudering'))+'<br>'+esc(line('stella'))+(store.best?`<br>Bästa förhör ${esc(store.best)}`:'');
 }
-document.addEventListener('click',e=>{const a=e.target.closest('[data-topic]');if(a){fc.topic=a.dataset.topic;fc.filter='alla';buildDeck();}});
+document.addEventListener('click',e=>{const a=e.target.closest('[data-topic]');if(a){const tp=a.dataset.topic;const k=Object.keys(SOURCES).find(k=>SOURCES[k].topics.some(t=>t.id===tp));if(k&&k!==store.source){store.source=k;save();}fc.topic=tp;fc.filter='alla';buildDeck();}});
 $('#reset-progress').onclick=()=>{$('#reset-confirm').hidden=false;};
 $('#reset-no').onclick=()=>{$('#reset-confirm').hidden=true;};
-$('#reset-yes').onclick=()=>{store={status:{},ignored:store.ignored,best:null,name:store.name,showIgnored:store.showIgnored};save();$('#reset-confirm').hidden=true;renderStart();buildDeck();};
+$('#reset-yes').onclick=()=>{store={status:{},ignored:store.ignored,best:null,name:store.name,showIgnored:store.showIgnored,source:store.source};save();$('#reset-confirm').hidden=true;renderStart();buildDeck();};
 
 /* ============ FLASHCARDS ============ */
 const fc={topic:'alla',filter:'alla',shuffled:false,list:[],i:0,flipped:false,timer:null};
 const FILTERS=[{id:'alla',name:'Alla kort'},{id:'ejklar',name:'Inte gröna'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'},{id:'ignored',name:'Ignorerade'}];
-function renderTopicChips(el,cur,cb){
-  el.innerHTML=[{id:'alla',name:'Alla'}].concat(TOPICS).map(t=>`<button type="button" class="chip" aria-pressed="${t.id===cur}" data-t="${t.id}">${t.name}</button>`).join('');
+function renderTopicChips(el,cur,cb,topics=TOPICS){
+  el.innerHTML=[{id:'alla',name:'Alla'}].concat(topics).map(t=>`<button type="button" class="chip" aria-pressed="${t.id===cur}" data-t="${t.id}">${t.name}</button>`).join('');
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>cb(b.dataset.t));
 }
 function matchFilter(c){const s=store.status[c.id],ig=!!store.ignored[c.id];
@@ -784,9 +919,12 @@ function matchFilter(c){const s=store.status[c.id],ig=!!store.ignored[c.id];
   return (fc.filter==='ejklar'&&s!=='green')||(fc.filter==='none'&&!s)||s===fc.filter;}
 function buildDeck(){
   clearTimeout(fc.timer);
-  const cs=CARDS.filter(c=>(fc.topic==='alla'||c.t===fc.topic)&&matchFilter(c));
+  const S=SRC();if(fc.topic!=='alla'&&!S.topics.some(t=>t.id===fc.topic))fc.topic='alla';
+  const cs=S.cards.filter(c=>(fc.topic==='alla'||c.t===fc.topic)&&matchFilter(c));
   fc.list=fc.shuffled?shuffle(cs):cs;fc.i=0;fc.flipped=false;
-  renderTopicChips($('#fc-topics'),fc.topic,t=>{fc.topic=t;buildDeck();});
+  renderTopicChips($('#fc-topics'),fc.topic,t=>{fc.topic=t;buildDeck();},S.topics);
+  $('#fc-source').value=store.source;
+  $('#fc-source-note').textContent=S.cards.length+' kort'+(store.source==='stella'?' · kapitlet Kolets kemi, s. 100–141':' · utifrån målen för avsnittet');
   const ff=$('#fc-filter');
   ff.innerHTML=FILTERS.map(f=>`<button type="button" class="chip" aria-pressed="${f.id===fc.filter}" data-f="${f.id}">${f.name}</button>`).join('');
   ff.querySelectorAll('button').forEach(b=>b.onclick=()=>{fc.filter=b.dataset.f;buildDeck();});
@@ -802,7 +940,7 @@ function renderCard(){
   }
   const c=fc.list[fc.i],t=TOPIC[c.t],st=store.status[c.id],ign=!!store.ignored[c.id],n=fc.list.length;
   const r=tallyOf(store.status,fc.list,store.ignored);
-  deck.innerHTML=`<div class="deck-meta"><span>${t.name}</span><span class="tally"><span><i style="background:var(--ok)"></i>${r.green}</span><span><i style="background:var(--warn)"></i>${r.yellow}</span><span><i style="background:var(--bad)"></i>${r.red}</span>${r.ignored?`<span><i style="background:var(--line)"></i>${r.ignored}</span>`:''}</span></div>
+  deck.innerHTML=`<div class="deck-meta"><span>${t.name}${c.p?` · s. ${c.p}`:''}</span><span class="tally"><span><i style="background:var(--ok)"></i>${r.green}</span><span><i style="background:var(--warn)"></i>${r.yellow}</span><span><i style="background:var(--bad)"></i>${r.red}</span>${r.ignored?`<span><i style="background:var(--line)"></i>${r.ignored}</span>`:''}</span></div>
   <div class="flip${fc.flipped?' on':''}${ign?' ign':''}" id="flip" tabindex="0" role="button" aria-label="Vänd kortet">
     <div class="flip-in">
       <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(st,ign)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att vända</p></div>
@@ -840,22 +978,23 @@ function clearMark(){
   delete store.status[c.id];save();renderStart();renderCard();
 }
 function renderSettings(){
-  const el=$('#fc-settings'),nIgn=Object.keys(store.ignored).length,nCol=Object.keys(store.status).length;
+  const el=$('#fc-settings'),cs=SRC().cards,nIgn=cs.filter(c=>store.ignored[c.id]).length,nCol=cs.filter(c=>store.status[c.id]).length;
   const conf=(txt,id)=>`<span class="confirm">${txt} <button class="btn small danger" type="button" id="${id}">Ja</button><button class="btn small" type="button" id="set-no">Avbryt</button></span>`;
   el.innerHTML=`<div class="setrow"><label for="set-show"><input type="checkbox" id="set-show" ${store.showIgnored?'checked':''}><span>Visa ignorerade kort<span class="sub">${nIgn?nIgn+' kort ignoreras. ':''}Dolda kort syns ändå under filtret ”Ignorerade”.</span></span></label></div>
   <div class="setrow"><label for="set-shuffle"><input type="checkbox" id="set-shuffle" ${fc.shuffled?'checked':''}><span>Blanda ordningen<span class="sub">Korten kommer i slumpad ordning.</span></span></label></div>
-  <div class="setrow"><span><b>Rensa alla färger</b><span class="sub">Alla kort blir omarkerade (svarta). Ignorerade kort påverkas inte.</span></span>${fc.confirm==='colors'?conf('Rensa '+nCol+' markeringar?','set-yes'):`<button class="btn small danger" type="button" id="set-colors" ${nCol?'':'disabled'}>Rensa alla</button>`}</div>
-  <div class="setrow"><span><b>Ta tillbaka alla ignorerade</b><span class="sub">Alla kort blir aktuella för provet igen.</span></span>${fc.confirm==='ignored'?conf('Ta tillbaka '+nIgn+' kort?','set-yes'):`<button class="btn small" type="button" id="set-unignore" ${nIgn?'':'disabled'}>Ta tillbaka alla</button>`}</div>`;
+  <div class="setrow"><span><b>Rensa alla färger</b><span class="sub">Gäller ${esc(SRC().name)}. Alla kort blir omarkerade (svarta). Ignorerade kort påverkas inte.</span></span>${fc.confirm==='colors'?conf('Rensa '+nCol+' markeringar?','set-yes'):`<button class="btn small danger" type="button" id="set-colors" ${nCol?'':'disabled'}>Rensa alla</button>`}</div>
+  <div class="setrow"><span><b>Ta tillbaka alla ignorerade</b><span class="sub">Gäller ${esc(SRC().name)}. Alla kort blir aktuella för provet igen.</span></span>${fc.confirm==='ignored'?conf('Ta tillbaka '+nIgn+' kort?','set-yes'):`<button class="btn small" type="button" id="set-unignore" ${nIgn?'':'disabled'}>Ta tillbaka alla</button>`}</div>`;
   $('#set-show').onchange=e=>{store.showIgnored=e.target.checked;save();buildDeck();};
   $('#set-shuffle').onchange=e=>{fc.shuffled=e.target.checked;buildDeck();};
   if(fc.confirm){
     $('#set-no').onclick=()=>{fc.confirm=null;renderSettings();};
-    $('#set-yes').onclick=()=>{if(fc.confirm==='colors')store.status={};else store.ignored={};fc.confirm=null;save();renderStart();buildDeck();};
+    $('#set-yes').onclick=()=>{const tgt=fc.confirm==='colors'?store.status:store.ignored;SRC().cards.forEach(c=>delete tgt[c.id]);fc.confirm=null;save();renderStart();buildDeck();};
   }else{
     $('#set-colors').onclick=()=>{fc.confirm='colors';renderSettings();};
     $('#set-unignore').onclick=()=>{fc.confirm='ignored';renderSettings();};
   }
 }
+$('#fc-source').onchange=e=>{store.source=e.target.value;save();fc.topic='alla';fc.filter='alla';buildDeck();};
 function setMenu(open){const p=$('#fc-settings');p.hidden=!open;$('#fc-settings-btn').setAttribute('aria-expanded',open);fc.confirm=null;if(open)renderSettings();}
 $('#fc-settings-btn').onclick=()=>setMenu($('#fc-settings').hidden);
 document.addEventListener('click',e=>{if(!$('#fc-settings').hidden&&!e.composedPath().includes($('#fc-dd')))setMenu(false);});
@@ -996,22 +1135,25 @@ function renderGallery(){
 /* ============ DELA ============ */
 const SHARE_BASE='https://daniel-wennerberg.github.io/kolets-kemi/';
 const CODE={red:1,yellow:2,green:3},DECODE=[null,'red','yellow','green'];
-function encodeStatus(st){let s='';for(let i=0;i<CARDS.length;i+=2){const a=CODE[st[CARDS[i].id]]||0,b=i+1<CARDS.length?(CODE[st[CARDS[i+1].id]]||0):0;s+=(a*4+b).toString(16);}return s;}
-function decodeStatus(s){const st={};for(let k=0;k<s.length;k++){const v=parseInt(s[k],16);if(isNaN(v))continue;const a=DECODE[v>>2],b=DECODE[v&3];if(a&&CARDS[2*k])st[CARDS[2*k].id]=a;if(b&&CARDS[2*k+1])st[CARDS[2*k+1].id]=b;}return st;}
-function encodeIgn(ig){let s='';for(let i=0;i<CARDS.length;i+=4){let v=0;for(let k=0;k<4;k++)if(CARDS[i+k]&&ig[CARDS[i+k].id])v|=1<<k;s+=v.toString(16);}return s.replace(/0+$/,'');}
-function decodeIgn(s){const ig={};for(let j=0;j<(s||'').length;j++){const v=parseInt(s[j],16);if(isNaN(v))continue;for(let k=0;k<4;k++)if(v&(1<<k)&&CARDS[4*j+k])ig[CARDS[4*j+k].id]=true;}return ig;}
+function encodeStatus(st,L=CARDS){let s='';for(let i=0;i<L.length;i+=2){const a=CODE[st[L[i].id]]||0,b=i+1<L.length?(CODE[st[L[i+1].id]]||0):0;s+=(a*4+b).toString(16);}return s.replace(/0+$/,'');}
+function decodeStatus(s,L=CARDS){const st={};s=s||'';for(let k=0;k<s.length;k++){const v=parseInt(s[k],16);if(isNaN(v))continue;const a=DECODE[v>>2],b=DECODE[v&3];if(a&&L[2*k])st[L[2*k].id]=a;if(b&&L[2*k+1])st[L[2*k+1].id]=b;}return st;}
+function encodeIgn(ig,L=CARDS){let s='';for(let i=0;i<L.length;i+=4){let v=0;for(let k=0;k<4;k++)if(L[i+k]&&ig[L[i+k].id])v|=1<<k;s+=v.toString(16);}return s.replace(/0+$/,'');}
+function decodeIgn(s,L=CARDS){const ig={};for(let j=0;j<(s||'').length;j++){const v=parseInt(s[j],16);if(isNaN(v))continue;for(let k=0;k<4;k++)if(v&(1<<k)&&L[4*j+k])ig[L[4*j+k].id]=true;}return ig;}
 const tallyOf=(st,cs=CARDS,ign={})=>{const r={red:0,yellow:0,green:0,none:0,ignored:0,n:0};cs.forEach(c=>{if(ign[c.id]){r.ignored++;return;}r.n++;r[st[c.id]||'none']++;});return r;};
 const stackBar=(r,_n)=>{const n=r.n||1;return `<div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div>`;};
 function shareLink(){
-  const p=new URLSearchParams({n:(store.name||'').trim(),r:encodeStatus(store.status),t:Date.now().toString(36)});
+  const p=new URLSearchParams({n:(store.name||'').trim(),r:encodeStatus(store.status,CARDS),t:Date.now().toString(36)});
+  const rs=encodeStatus(store.status,STELLA_CARDS);if(rs)p.set('rs',rs);
+  const is=encodeIgn(store.ignored,STELLA_CARDS);if(is)p.set('is',is);
+  p.set('k',store.source);
   if(store.best)p.set('b',store.best);
-  const ig=encodeIgn(store.ignored);if(ig)p.set('i',ig);
+  const ig=encodeIgn(store.ignored,CARDS);if(ig)p.set('i',ig);
   return SHARE_BASE+'?'+p.toString();
 }
 function renderShare(){
   $('#share-name').value=store.name||'';
-  const r=tallyOf(store.status,CARDS,store.ignored);
-  $('#share-summary').innerHTML=`<p class="eyebrow" style="margin-bottom:8px">Det här skickas</p><div class="tally" style="margin-bottom:8px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span><span class="muted">${r.none} omarkerade</span>${r.ignored?`<span class="muted">${r.ignored} ignoreras</span>`:''}${store.best?`<span class="muted">· bästa förhör ${store.best}</span>`:''}</div>${stackBar(r,CARDS.length)}`;
+  const row=k=>{const S=SOURCES[k],r=tallyOf(store.status,S.cards,store.ignored);return `<p style="font-weight:700;margin:6px 0 4px">${S.name}</p><div class="tally" style="margin-bottom:6px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span><span class="muted">${r.none} omarkerade</span>${r.ignored?`<span class="muted">${r.ignored} ignoreras</span>`:''}</div>${stackBar(r)}`;};
+  $('#share-summary').innerHTML=`<p class="eyebrow" style="margin-bottom:4px">Det här skickas</p>${row('instudering')}<div style="height:8px"></div>${row('stella')}${store.best?`<p class="muted" style="margin-top:8px">Bästa förhör ${esc(store.best)}</p>`:''}`;
   $('#share-link').value=shareLink();
   $('#share-native').hidden=!navigator.share;
   $('#share-msg').textContent='';
@@ -1029,20 +1171,20 @@ $('#share-native').onclick=()=>{
 
 /* Delat resultat (öppnad länk) */
 const SHARED=(()=>{try{const p=new URLSearchParams(location.search);if(!p.has('r'))return null;
-  return {name:(p.get('n')||'').slice(0,30),st:decodeStatus(p.get('r')),ign:decodeIgn(p.get('i')),best:p.get('b'),t:parseInt(p.get('t')||'',36)};}catch(e){return null;}})();
+  return {name:(p.get('n')||'').slice(0,30),st:Object.assign(decodeStatus(p.get('r'),CARDS),decodeStatus(p.get('rs'),STELLA_CARDS)),ign:Object.assign(decodeIgn(p.get('i'),CARDS),decodeIgn(p.get('is'),STELLA_CARDS)),src:SOURCES[p.get('k')]?p.get('k'):'instudering',best:p.get('b'),t:parseInt(p.get('t')||'',36)};}catch(e){return null;}})();
 function renderResult(){
   if(!SHARED)return;
-  const {name,st,ign,best,t}=SHARED,r=tallyOf(st,CARDS,ign),n=r.n;
+  const {name,st,ign,best,t}=SHARED,S=SOURCES[sv.src],r=tallyOf(st,S.cards,ign),n=r.n;
   const whose=name?(/[sxz]$/i.test(name)?name:name+'s')+' resultat':'Delat resultat';
   const when=isNaN(t)?'':new Date(t).toLocaleString('sv-SE',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  const list=s=>CARDS.filter(c=>!ign[c.id]&&st[c.id]===s).map(c=>`<details class="${s}"><summary>${fmt(c.q)} <span class="muted" style="font-weight:400">· ${TOPIC[c.t].name}</span></summary><p>${fmt(c.a)}</p></details>`).join('');
+  const list=s=>S.cards.filter(c=>!ign[c.id]&&st[c.id]===s).map(c=>`<details class="${s}"><summary>${fmt(c.q)} <span class="muted" style="font-weight:400">· ${TOPIC[c.t].name}${c.p?', s. '+c.p:''}</span></summary><p>${fmt(c.a)}</p></details>`).join('');
   $('#result').innerHTML=`<div class="res">
    <div class="res-banner"><span>Du tittar på ett delat resultat. Dina egna markeringar påverkas inte.</span><a class="btn small" href="${location.pathname}">Öppna min egen app</a></div>
-   <div><p class="eyebrow">Flashcards · Kolets kemi</p><h1 style="font-size:clamp(2rem,5vw,2.8rem);margin-top:4px">${esc(whose)}</h1>${when?`<p class="muted" style="margin-top:6px">Delat ${when}</p>`:''}</div>
+   <div><p class="eyebrow">Flashcards · Kolets kemi</p><h1 style="font-size:clamp(2rem,5vw,2.8rem);margin-top:4px">${esc(whose)}</h1>${when?`<p class="muted" style="margin-top:6px">Delat ${when}</p>`:''}<div class="src-row" style="margin-top:12px"><label for="res-source" class="eyebrow">Källa</label><select id="res-source">${Object.entries(SOURCES).map(([k,v])=>`<option value="${k}"${k===sv.src?' selected':''}>${v.name}</option>`).join('')}</select></div></div>
    <div class="res-big"><div><b style="color:var(--ok)">${r.green}</b><span>Kan (gröna)</span></div><div><b style="color:var(--warn)">${r.yellow}</b><span>Kan lite (gula)</span></div><div><b style="color:var(--bad)">${r.red}</b><span>Kan inte (röda)</span></div><div><b>${r.none}</b><span>Inte övade</span></div></div>
    <div style="display:grid;gap:8px">${stackBar(r,n)}<p class="muted" style="font-size:.9rem">${Math.round(r.green/(n||1)*100)} % av ${n} aktuella kort är gröna${r.ignored?` · ${r.ignored} kort ignoreras (inte med på provet)`:''}${best?` · bästa förhör ${esc(best)}`:''}</p></div>
    <div style="display:grid;gap:12px"><h3>Bläddra bland korten</h3><p class="muted" style="font-size:.95rem;margin-top:-6px">Varje kort visar hur ${esc(name||'personen')} har markerat det. Vänd kortet för att se svaret.</p><div class="chips" id="sv-filter"></div><div class="deck" id="sv-deck" style="margin:0;max-width:none"></div></div>
-   <div><h3>Per ämne</h3><div class="res-topics">${TOPICS.map(tp=>{const cs=CARDS.filter(c=>c.t===tp.id),x=tallyOf(st,cs,ign);return `<div class="res-topic"><span><b>${tp.name}</b></span>${stackBar(x)}<span class="nums">${x.green}/${x.n} gröna</span></div>`;}).join('')}</div></div>
+   <div><h3>Per ämne</h3><div class="res-topics">${S.topics.map(tp=>{const cs=S.cards.filter(c=>c.t===tp.id),x=tallyOf(st,cs,ign);return `<div class="res-topic"><span><b>${tp.name}</b></span>${stackBar(x)}<span class="nums">${x.green}/${x.n} gröna</span></div>`;}).join('')}</div></div>
    ${r.red?`<div class="res-list"><h3>Röda kort – öva på dessa först</h3><p class="muted" style="font-size:.9rem">Klicka på en fråga för att se svaret. Bra att förhöra på.</p>${list('red')}</div>`:''}
    ${r.yellow?`<div class="res-list"><h3>Gula kort – kan lite</h3>${list('yellow')}</div>`:''}
    ${!r.red&&!r.yellow?`<p>Inga röda eller gula kort.</p>`:''}
@@ -1050,16 +1192,17 @@ function renderResult(){
 }
 
 /* Bläddra i delade kort (skrivskyddat) */
-const sv={filter:'alla',topic:'alla',list:[],i:0,flipped:false};
+const sv={filter:'alla',topic:'alla',list:[],i:0,flipped:false,src:SHARED?SHARED.src:'instudering'};
 const SV_FILTERS=[{id:'alla',name:'Alla'},{id:'red',name:'Röda'},{id:'yellow',name:'Gula'},{id:'green',name:'Gröna'},{id:'none',name:'Omarkerade'},{id:'ignored',name:'Ignorerade'}];
 function buildSharedDeck(){
-  if(!SHARED)return;const st=SHARED.st,ig=SHARED.ign;
+  if(!SHARED)return;const st=SHARED.st,ig=SHARED.ign,S=SOURCES[sv.src];
+  $('#res-source').onchange=e=>{sv.src=e.target.value;sv.topic='alla';sv.filter='alla';renderResult();buildSharedDeck();};
   const ok=c=>{if(sv.filter==='alla')return true;if(sv.filter==='ignored')return !!ig[c.id];if(ig[c.id])return false;return sv.filter==='none'?!st[c.id]:st[c.id]===sv.filter;};
-  sv.list=CARDS.filter(c=>(sv.topic==='alla'||c.t===sv.topic)&&ok(c));
+  sv.list=S.cards.filter(c=>(sv.topic==='alla'||c.t===sv.topic)&&ok(c));
   sv.i=0;sv.flipped=false;
-  const r=tallyOf(st,CARDS,ig);
+  const r=tallyOf(st,S.cards,ig);
   $('#sv-filter').innerHTML=SV_FILTERS.map(f=>`<button type="button" class="chip" aria-pressed="${f.id===sv.filter}" data-f="${f.id}">${f.name}${f.id!=='alla'?` (${r[f.id]})`:''}</button>`).join('')
-   +`<select id="sv-topic" aria-label="Ämne" style="padding:4px 10px;font-size:.9rem"><option value="alla">Alla ämnen</option>${TOPICS.map(t=>`<option value="${t.id}"${t.id===sv.topic?' selected':''}>${t.name}</option>`).join('')}</select>`;
+   +`<select id="sv-topic" aria-label="Ämne" style="padding:4px 10px;font-size:.9rem"><option value="alla">Alla ämnen</option>${S.topics.map(t=>`<option value="${t.id}"${t.id===sv.topic?' selected':''}>${t.name}</option>`).join('')}</select>`;
   $('#sv-filter').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{sv.filter=b.dataset.f;buildSharedDeck();});
   $('#sv-topic').onchange=e=>{sv.topic=e.target.value;buildSharedDeck();};
   renderSharedCard();
@@ -1069,7 +1212,7 @@ function renderSharedCard(){
   const deck=$('#sv-deck'),st=SHARED.st,ig=SHARED.ign;
   if(!sv.list.length){deck.innerHTML=`<div class="done"><p class="muted">Inga kort matchar filtret.</p></div>`;return;}
   const c=sv.list[sv.i],s=st[c.id],gi=!!ig[c.id],n=sv.list.length;
-  deck.innerHTML=`<div class="deck-meta"><span>${TOPIC[c.t].name}</span><span>Kort ${sv.i+1} av ${n}</span></div>
+  deck.innerHTML=`<div class="deck-meta"><span>${TOPIC[c.t].name}${c.p?` · s. ${c.p}`:''}</span><span>Kort ${sv.i+1} av ${n}</span></div>
   <div class="flip${sv.flipped?' on':''}${gi?' ign':''}" id="sv-flip" tabindex="0" role="button" aria-label="Vänd kortet">
     <div class="flip-in">
       <div class="face front"><div class="face-head"><span class="tag">Fråga</span>${badge(s,gi)}</div><p class="q">${fmt(c.q)}</p><p class="hint">Klicka eller tryck mellanslag för att se svaret</p></div>
