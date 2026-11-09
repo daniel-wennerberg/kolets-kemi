@@ -1432,12 +1432,13 @@ function renderImport(){
   const I=IMPORT,inc=sumAll(I.st,I.ign),cur=sumAll(store.status,store.ignored),when=fmtWhen(I.t);
   const box=(h,x,best,nm)=>`<div><p class="eyebrow">${h}</p>${nm?`<p><b>${esc(nm)}</b></p>`:''}<p><b>${x.marked}</b> markerade kort</p><p><b>${x.ignored}</b> ignorerade kort</p><p class="muted">Bästa förhör: ${best?esc(best):'–'}</p></div>`;
   const rows=Object.values(SOURCES).map(S=>{const r=tallyOf(I.st,S.cards,I.ign);return `<p style="font-weight:700;margin:6px 0 4px">${S.name}</p><div class="tally" style="margin-bottom:6px"><span><i style="background:var(--ok)"></i>${r.green} gröna</span><span><i style="background:var(--warn)"></i>${r.yellow} gula</span><span><i style="background:var(--bad)"></i>${r.red} röda</span>${r.ignored?`<span class="muted">${r.ignored} ignoreras</span>`:''}</div>${stackBar(r)}`;}).join('');
+  const ACT=`<div class="row"><button class="btn primary" type="button" id="imp-replace">${cur.marked||cur.ignored?'Ersätt med länkens framsteg':'Hämta framstegen'}</button>${cur.marked||cur.ignored?`<button class="btn" type="button" id="imp-merge">Slå ihop</button>`:''}<button class="btn" type="button" id="imp-cancel">Avbryt</button></div>`;
   $('#import').innerHTML=`<div class="share">
    <div><p class="eyebrow">Fortsätt på den här enheten</p><h1 style="font-size:clamp(1.8rem,5vw,2.5rem);margin-top:4px">Hämta framstegen hit?</h1>${when?`<p class="muted" style="margin-top:6px">Sparat ${when}</p>`:''}</div>
+   ${ACT}
    <div class="setup">${rows}</div>
    ${cur.marked||cur.ignored||store.best?`<div class="imp-cmp">${box('Från länken',inc,I.best,I.name)}${box('Redan på den här enheten',cur,store.best,store.name)}</div>
    <p class="muted" style="font-size:.95rem">Den här enheten har redan egna markeringar. <b>Ersätt</b> gör den till en exakt kopia av länken. <b>Slå ihop</b> behåller kort som bara är markerade här och tar länkens färg där båda har markerat.</p>`:''}
-   <div class="row"><button class="btn primary" type="button" id="imp-replace">${cur.marked||cur.ignored?'Ersätt med länkens framsteg':'Hämta framstegen'}</button>${cur.marked||cur.ignored?`<button class="btn" type="button" id="imp-merge">Slå ihop</button>`:''}<button class="btn" type="button" id="imp-cancel">Avbryt</button></div>
   </div>`;
   const done=msg=>{IMPORT=null;history.replaceState(null,'',location.pathname+'#start');$('#gsrc').value=store.source;mmSel=SRC().topics[0].id;fc.topic='alla';fc.filter='alla';renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();route();if(msg)toastMsg(msg);};
   $('#imp-replace').onclick=()=>{store.status=Object.assign({},I.st);store.ignored=Object.assign({},I.ign);store.best=I.best||null;if(I.name)store.name=I.name;store.source=I.src;store.showIgnored=I.showIgnored;save();done('Klart! Du kan fortsätta här.');};
@@ -1508,9 +1509,10 @@ document.addEventListener('keydown',e=>{
 
 /* ============ ROUTING ============ */
 const VIEWS=['start','kort','forhor','karta','bilder','dela','resultat','flytta'];
-const currentView=()=>{if(IMPORT)return 'flytta';const h=location.hash.slice(1);if(h==='flytta')return 'start';if(VIEWS.includes(h)&&(h!=='resultat'||SHARED))return h;return SHARED?'resultat':'start';};
+const currentView=()=>{const h=location.hash.slice(1);if(IMPORT&&(h===''||h==='flytta'))return 'flytta';if(h==='flytta')return 'start';if(VIEWS.includes(h)&&(h!=='resultat'||SHARED))return h;return SHARED?'resultat':'start';};
 let lastView=null;
 function route(){
+  if(IMPORT&&location.hash.slice(1)&&location.hash!=='#flytta'){IMPORT=null;history.replaceState(null,'',location.pathname+location.hash);}
   const v=currentView();
   VIEWS.forEach(x=>$('#v-'+x).hidden=x!==v);
   document.querySelectorAll('nav.tabs a').forEach(a=>a.setAttribute('aria-current',a.getAttribute('href')==='#'+v?'page':'false'));
