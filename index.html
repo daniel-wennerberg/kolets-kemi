@@ -133,7 +133,9 @@ section.view{padding-top:28px}
 .clear-row{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap}
 .chip.gear{display:inline-flex;align-items:center;gap:6px}
 .chip.gear[aria-expanded="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
-.settings{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:6px 18px;display:grid;max-width:640px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.dd{position:relative}
+.settings{position:absolute;right:0;top:calc(100% + 8px);z-index:4;width:min(420px,calc(100vw - 32px));background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:4px 18px;display:grid;box-shadow:0 12px 32px rgba(10,20,30,.18)}
 .setrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
 .setrow:last-child{border-bottom:0}
 .setrow label{display:flex;gap:10px;align-items:center;cursor:pointer;font-weight:700}
@@ -310,15 +312,18 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
 
 <!-- FLASHCARDS -->
 <section class="view" id="v-kort" hidden>
-  <h2>Flashcards</h2>
+  <div class="sec-head"><h2>Flashcards</h2>
+    <div class="dd" id="fc-dd">
+<button class="chip gear" aria-haspopup="true" id="fc-settings-btn" aria-expanded="false" aria-controls="fc-settings" type="button"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>Inställningar</button>
+      <div class="settings" id="fc-settings" role="menu" hidden></div>
+    </div>
+  </div>
   <p class="muted" style="margin-top:6px">Läs frågan, svara i huvudet och vänd kortet. Markera sedan rött, gult eller grönt. Du kan bläddra fram och tillbaka och ändra markeringen när du vill.</p>
   <div class="toolbar">
     <div class="chips" id="fc-topics"></div>
     <div class="row">
       <div class="chips" id="fc-filter"></div>
-      <button class="chip gear" id="fc-settings-btn" aria-expanded="false" aria-controls="fc-settings" type="button"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>Inställningar</button>
       <a class="chip" href="#dela" style="text-decoration:none;color:var(--accent);border-color:var(--accent)">Dela resultat</a>    </div>
-    <div class="settings" id="fc-settings" hidden></div>
   </div>
   <div class="deck" id="deck"></div>
 </section>
@@ -851,7 +856,10 @@ function renderSettings(){
     $('#set-unignore').onclick=()=>{fc.confirm='ignored';renderSettings();};
   }
 }
-$('#fc-settings-btn').onclick=()=>{const p=$('#fc-settings'),open=p.hidden;p.hidden=!open;$('#fc-settings-btn').setAttribute('aria-expanded',open);if(!open)fc.confirm=null;renderSettings();};
+function setMenu(open){const p=$('#fc-settings');p.hidden=!open;$('#fc-settings-btn').setAttribute('aria-expanded',open);fc.confirm=null;if(open)renderSettings();}
+$('#fc-settings-btn').onclick=()=>setMenu($('#fc-settings').hidden);
+document.addEventListener('click',e=>{if(!$('#fc-settings').hidden&&!e.composedPath().includes($('#fc-dd')))setMenu(false);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#fc-settings').hidden){setMenu(false);$('#fc-settings-btn').focus();}});
 document.addEventListener('keydown',e=>{
   if(currentView()!=='kort'||!fc.list.length||e.target.matches('input,select,textarea'))return;
   if(e.key===' '){e.preventDefault();$('#flip').click();}
