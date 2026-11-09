@@ -139,6 +139,15 @@ section.view{padding-top:28px}
 .dots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .dots button{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--ink);background:var(--ink);padding:0}
 .clear-row{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap}
+.chip.gear{display:inline-flex;align-items:center;gap:6px}
+.chip.gear[aria-expanded="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.settings{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:6px 18px;display:grid;max-width:640px}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
+.setrow:last-child{border-bottom:0}
+.setrow label{display:flex;gap:10px;align-items:center;cursor:pointer;font-weight:700}
+.setrow input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.setrow .sub{display:block;font-weight:400;font-size:.85rem;color:var(--muted)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
 .linkbtn{background:none;border:0;padding:4px 8px;color:var(--muted);text-decoration:underline;font-size:.9rem}
 .linkbtn:hover{color:var(--ink)}
 .linkbtn[disabled]{opacity:.4;cursor:default;text-decoration:none}
@@ -315,8 +324,9 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
     <div class="chips" id="fc-topics"></div>
     <div class="row">
       <div class="chips" id="fc-filter"></div>
-      <button class="chip" id="fc-shuffle" aria-pressed="false" type="button">Blanda</button>
+      <button class="chip gear" id="fc-settings-btn" aria-expanded="false" aria-controls="fc-settings" type="button"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>Inställningar</button>
       <a class="chip" href="#dela" style="text-decoration:none;color:var(--accent);border-color:var(--accent)">Dela resultat</a>    </div>
+    <div class="settings" id="fc-settings" hidden></div>
   </div>
   <div class="deck" id="deck"></div>
 </section>
@@ -737,8 +747,8 @@ const DIAGS={
 
 /* ============ LAGRING ============ */
 const KEY='kolets-kemi-v1';
-let store={status:{},ignored:{},best:null};
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){store.best=s.best||null;store.name=s.name||"";store.status=s.status||{};store.ignored=s.ignored||{};if(s.known)Object.keys(s.known).forEach(k=>{if(!store.status[k])store.status[k]='green';});}}catch(e){}
+let store={status:{},ignored:{},best:null,showIgnored:true};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){store.best=s.best||null;store.name=s.name||"";store.status=s.status||{};store.ignored=s.ignored||{};store.showIgnored=s.showIgnored!==false;if(s.known)Object.keys(s.known).forEach(k=>{if(!store.status[k])store.status[k]='green';});}}catch(e){}
 const STATUS={red:{label:'Kan inte',hint:'rött',icon:'<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'},
  yellow:{label:'Kan lite',hint:'gult',icon:'<svg viewBox="0 0 16 16"><path d="M3.5 8h9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>'},
  green:{label:'Kan',hint:'grönt',icon:'<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'}};
@@ -763,7 +773,7 @@ function renderStart(){
 document.addEventListener('click',e=>{const a=e.target.closest('[data-topic]');if(a){fc.topic=a.dataset.topic;fc.filter='alla';buildDeck();}});
 $('#reset-progress').onclick=()=>{$('#reset-confirm').hidden=false;};
 $('#reset-no').onclick=()=>{$('#reset-confirm').hidden=true;};
-$('#reset-yes').onclick=()=>{store={status:{},ignored:store.ignored,best:null,name:store.name};save();$('#reset-confirm').hidden=true;renderStart();buildDeck();};
+$('#reset-yes').onclick=()=>{store={status:{},ignored:store.ignored,best:null,name:store.name,showIgnored:store.showIgnored};save();$('#reset-confirm').hidden=true;renderStart();buildDeck();};
 
 /* ============ FLASHCARDS ============ */
 const fc={topic:'alla',filter:'alla',shuffled:false,list:[],i:0,flipped:false,timer:null};
@@ -773,7 +783,7 @@ function renderTopicChips(el,cur,cb){
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>cb(b.dataset.t));
 }
 function matchFilter(c){const s=store.status[c.id],ig=!!store.ignored[c.id];
-  if(fc.filter==='alla')return true;if(fc.filter==='ignored')return ig;if(ig)return false;
+  if(fc.filter==='ignored')return ig;if(ig&&!store.showIgnored)return false;if(fc.filter==='alla')return true;if(ig)return false;
   return (fc.filter==='ejklar'&&s!=='green')||(fc.filter==='none'&&!s)||s===fc.filter;}
 function buildDeck(){
   clearTimeout(fc.timer);
@@ -783,10 +793,10 @@ function buildDeck(){
   const ff=$('#fc-filter');
   ff.innerHTML=FILTERS.map(f=>`<button type="button" class="chip" aria-pressed="${f.id===fc.filter}" data-f="${f.id}">${f.name}</button>`).join('');
   ff.querySelectorAll('button').forEach(b=>b.onclick=()=>{fc.filter=b.dataset.f;buildDeck();});
-  $('#fc-shuffle').setAttribute('aria-pressed',fc.shuffled);
+  renderSettings();
   renderCard();
 }
-function goTo(i){clearTimeout(fc.timer);if(i<0||i>=fc.list.length)return;fc.i=i;fc.flipped=false;fc.confirmAll=false;renderCard();}
+function goTo(i){clearTimeout(fc.timer);if(i<0||i>=fc.list.length)return;fc.i=i;fc.flipped=false;renderCard();}
 function renderCard(){
   const deck=$('#deck');
   if(!fc.list.length){
@@ -803,20 +813,12 @@ function renderCard(){
     </div>
   </div>
   <div class="deck-actions">${['red','yellow','green'].map((s,k)=>`<button type="button" class="b-${s}" data-st="${s}" aria-pressed="${!ign&&st===s}" ${ign?'disabled':''}>${STATUS[s].label} <small>${['Inte alls','Ungefär, inte detaljer','Helt säkert'][k]} · <span class="kbd">${k+1}</span></small></button>`).join('')}</div>
-  <div class="clear-row">${fc.confirmAll
-    ?`<span class="confirm">Rensa färgerna på alla kort? (Ignorerade kort förblir ignorerade.) <button class="btn small" type="button" id="fc-resetyes" style="border-color:var(--bad);color:var(--bad)">Ja, rensa alla</button><button class="btn small" type="button" id="fc-resetno">Avbryt</button></span>`
-    :`<button class="linkbtn" type="button" id="fc-clear" ${st&&!ign?'':'disabled'}>Rensa det här kortet <span class="kbd">0</span></button><button class="btn small" type="button" id="fc-ignore" aria-pressed="${ign}">${ign?'Sluta ignorera':'Ignorera'} <span class="kbd">I</span></button><button class="btn small" type="button" id="fc-resetall" ${Object.keys(store.status).length?'':'disabled'}>Rensa alla</button>`}</div>
+  <div class="clear-row"><button class="linkbtn" type="button" id="fc-clear" ${st&&!ign?'':'disabled'}>Rensa det här kortet <span class="kbd">0</span></button><button class="btn small" type="button" id="fc-ignore" aria-pressed="${ign}">${ign?'Sluta ignorera':'Ignorera'} <span class="kbd">I</span></button></div>
   <div class="deck-nav"><button class="btn small" type="button" id="fc-prev" ${fc.i===0?'disabled':''}>← Föregående</button><span class="pos">Kort ${fc.i+1} av ${n}</span><button class="btn small" type="button" id="fc-next" ${fc.i===n-1?'disabled':''}>Nästa →</button></div>
   <div class="dots" aria-label="Alla kort">${fc.list.map((x,i)=>`<button type="button" class="${store.ignored[x.id]?'ignored':(store.status[x.id]||'')}${i===fc.i?' cur':''}" data-i="${i}" aria-label="Kort ${i+1}${store.ignored[x.id]?', ignoreras':store.status[x.id]?', '+STATUS[store.status[x.id]].label:''}"></button>`).join('')}</div>`;
   const flip=$('#flip');flip.onclick=()=>{fc.flipped=!fc.flipped;flip.classList.toggle('on',fc.flipped);};
   deck.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>mark(b.dataset.st));
-  if(fc.confirmAll){
-    $('#fc-resetno').onclick=()=>{fc.confirmAll=false;renderCard();};
-    $('#fc-resetyes').onclick=()=>{store.status={};save();fc.confirmAll=false;fc.filter='alla';buildDeck();renderStart();};
-  }else{
-    $('#fc-clear').onclick=clearMark;$('#fc-ignore').onclick=toggleIgnore;
-    $('#fc-resetall').onclick=()=>{clearTimeout(fc.timer);fc.confirmAll=true;renderCard();};
-  }
+  $('#fc-clear').onclick=clearMark;$('#fc-ignore').onclick=toggleIgnore;
   $('#fc-prev').onclick=()=>goTo(fc.i-1);$('#fc-next').onclick=()=>goTo(fc.i+1);
   deck.querySelectorAll('.dots button').forEach(b=>b.onclick=()=>goTo(+b.dataset.i));
 }
@@ -830,14 +832,34 @@ function mark(s){
 function toggleIgnore(){
   const c=fc.list[fc.i];if(!c)return;clearTimeout(fc.timer);
   if(store.ignored[c.id])delete store.ignored[c.id];else store.ignored[c.id]=true;
-  save();renderStart();renderCard();
+  save();renderStart();renderSettings();
+  if(store.ignored[c.id]&&!store.showIgnored&&fc.filter!=='ignored'){fc.list.splice(fc.i,1);fc.i=Math.min(fc.i,Math.max(0,fc.list.length-1));fc.flipped=false;renderCard();return;}
+  if(!store.ignored[c.id]&&fc.filter==='ignored'){fc.list.splice(fc.i,1);fc.i=Math.min(fc.i,Math.max(0,fc.list.length-1));fc.flipped=false;renderCard();return;}
+  renderCard();
   if(store.ignored[c.id]&&fc.i<fc.list.length-1)fc.timer=setTimeout(()=>goTo(fc.i+1),450);
 }
 function clearMark(){
   const c=fc.list[fc.i];if(!c||store.ignored[c.id])return;clearTimeout(fc.timer);
   delete store.status[c.id];save();renderStart();renderCard();
 }
-$('#fc-shuffle').onclick=()=>{fc.shuffled=!fc.shuffled;buildDeck();};
+function renderSettings(){
+  const el=$('#fc-settings'),nIgn=Object.keys(store.ignored).length,nCol=Object.keys(store.status).length;
+  const conf=(txt,id)=>`<span class="confirm">${txt} <button class="btn small danger" type="button" id="${id}">Ja</button><button class="btn small" type="button" id="set-no">Avbryt</button></span>`;
+  el.innerHTML=`<div class="setrow"><label for="set-show"><input type="checkbox" id="set-show" ${store.showIgnored?'checked':''}><span>Visa ignorerade kort<span class="sub">${nIgn?nIgn+' kort ignoreras. ':''}Dolda kort syns ändå under filtret ”Ignorerade”.</span></span></label></div>
+  <div class="setrow"><label for="set-shuffle"><input type="checkbox" id="set-shuffle" ${fc.shuffled?'checked':''}><span>Blanda ordningen<span class="sub">Korten kommer i slumpad ordning.</span></span></label></div>
+  <div class="setrow"><span><b>Rensa alla färger</b><span class="sub">Alla kort blir omarkerade (svarta). Ignorerade kort påverkas inte.</span></span>${fc.confirm==='colors'?conf('Rensa '+nCol+' markeringar?','set-yes'):`<button class="btn small danger" type="button" id="set-colors" ${nCol?'':'disabled'}>Rensa alla</button>`}</div>
+  <div class="setrow"><span><b>Ta tillbaka alla ignorerade</b><span class="sub">Alla kort blir aktuella för provet igen.</span></span>${fc.confirm==='ignored'?conf('Ta tillbaka '+nIgn+' kort?','set-yes'):`<button class="btn small" type="button" id="set-unignore" ${nIgn?'':'disabled'}>Ta tillbaka alla</button>`}</div>`;
+  $('#set-show').onchange=e=>{store.showIgnored=e.target.checked;save();buildDeck();};
+  $('#set-shuffle').onchange=e=>{fc.shuffled=e.target.checked;buildDeck();};
+  if(fc.confirm){
+    $('#set-no').onclick=()=>{fc.confirm=null;renderSettings();};
+    $('#set-yes').onclick=()=>{if(fc.confirm==='colors')store.status={};else store.ignored={};fc.confirm=null;save();renderStart();buildDeck();};
+  }else{
+    $('#set-colors').onclick=()=>{fc.confirm='colors';renderSettings();};
+    $('#set-unignore').onclick=()=>{fc.confirm='ignored';renderSettings();};
+  }
+}
+$('#fc-settings-btn').onclick=()=>{const p=$('#fc-settings'),open=p.hidden;p.hidden=!open;$('#fc-settings-btn').setAttribute('aria-expanded',open);if(!open)fc.confirm=null;renderSettings();};
 document.addEventListener('keydown',e=>{
   if(currentView()!=='kort'||!fc.list.length||e.target.matches('input,select,textarea'))return;
   if(e.key===' '){e.preventDefault();$('#flip').click();}
