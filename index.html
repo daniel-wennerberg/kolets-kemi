@@ -79,6 +79,12 @@ section.view{padding-top:28px}
 .goal .meter{display:grid;gap:4px;font-size:.8rem;color:var(--muted);font-family:var(--mono)}
 .bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
 .bar>i{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .4s}
+.goal .wq{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.wq .chiplink{font-family:var(--font,inherit);font-size:.8rem}
+#weak{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+#weak:empty{display:none}
+.qcard-a{margin-top:4px}
+.qcard-a .mol svg{width:100%;max-width:240px;height:auto;max-height:160px}
 .goal .links{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .chiplink{font-size:.82rem;border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--card);color:var(--ink)}
 .chiplink:hover{border-color:var(--accent);color:var(--accent)}
@@ -322,6 +328,7 @@ table.series td b.first{color:var(--flame);font-size:1.2em}
     <h2>Det här ska du kunna</h2>
     <p class="muted" id="total-progress"></p>
   </div>
+  <div id="weak"></div>
   <div class="goals" id="goals"></div>
   <p class="muted" style="margin-top:18px;font-size:.9rem">Stapeln visar hur du har markerat korten inom målet: grönt = kan, gult = kan lite, rött = kan inte. Ignorerade kort räknas inte med. <button class="chiplink" id="reset-progress" type="button">Nollställ</button> <span id="reset-confirm" hidden> Säker? <button class="chiplink" id="reset-yes" type="button">Ja, nollställ</button> <button class="chiplink" id="reset-no" type="button">Avbryt</button></span></p>
 </section>
@@ -1105,6 +1112,19 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ============ START ============ */
+function wqBtns(r,key){
+  if(!r.red&&!r.yellow)return '';
+  return `<div class="wq">${r.red?`<button type="button" class="chiplink" data-wq="${key}" data-cols="red">Förhör röda (${r.red})</button>`:''}${r.yellow?`<button type="button" class="chiplink" data-wq="${key}" data-cols="red,yellow">${r.red?'+ gula':'Förhör gula'} (${r.red+r.yellow})</button>`:''}</div>`;
+}
+function weakCards(key,cols){
+  const S=SRC(),gt=g=>store.source==='stella'?g.ts:g.t;
+  const topics=key==='alla'?null:gt(GOALS[+key.slice(1)]);
+  return S.cards.filter(c=>(!topics||topics.includes(c.t))&&!store.ignored[c.id]&&cols.includes(store.status[c.id]));
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-wq]');if(!b)return;
+  const cols=b.dataset.cols.split(','),key=b.dataset.wq,cs=weakCards(key,cols);if(!cs.length)return;
+  const what=cols.length>1?'röda och gula kort':'röda kort',where=key==='alla'?'alla mål':'ett mål';
+  startCardQuiz(cs,`Förhör på ${what} · ${where}`);});
 function renderStart(){
   $('#hero-mol').innerHTML=molSVG(MOLS.metan,'Metan, CH4');
   $('#hero-src').textContent='Organisk kemi · '+SRC().name;
@@ -1112,7 +1132,9 @@ function renderStart(){
   const S=SRC(),gt=g=>store.source==='stella'?g.ts:g.t;
   $('#goals').innerHTML=GOALS.map(g=>{const cs=S.cards.filter(c=>gt(g).includes(c.t)),r=count(cs),n=r.n||1;
     return `<div class="goal"><div style="min-width:0"><p>${g.text}</p><div class="links">${gt(g).map(t=>`<a class="chiplink" href="#kort" data-topic="${t}">${TOPIC[t].name}</a>`).join('')}</div></div>
-    <div class="meter"><span>${r.green} av ${r.n} gröna${r.ignored?` · ${r.ignored} ignoreras`:''}</span><div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div></div></div>`;}).join('');
+    <div class="meter"><span>${r.green} av ${r.n} gröna${r.ignored?` · ${r.ignored} ignoreras`:''}</span><div class="stack" title="${r.green} gröna, ${r.yellow} gula, ${r.red} röda"><i style="width:${r.green/n*100}%;background:var(--ok)"></i><i style="width:${r.yellow/n*100}%;background:var(--warn)"></i><i style="width:${r.red/n*100}%;background:var(--bad)"></i></div>${wqBtns(r,'g'+GOALS.indexOf(g))}</div></div>`;}).join('');
+  const all=count(S.cards);
+  $('#weak').innerHTML=all.red||all.yellow?`<span class="muted" style="font-size:.9rem">Förhör på det du inte kan:</span>${all.red?`<button type="button" class="btn small" data-wq="alla" data-cols="red">Alla röda (${all.red})</button>`:''}${all.yellow?`<button type="button" class="btn small" data-wq="alla" data-cols="red,yellow">Röda och gula (${all.red+all.yellow})</button>`:''}`:'';
   const line=k=>{const r=count(SOURCES[k].cards);return `${SOURCES[k].name}: ${r.green} gröna · ${r.yellow} gula · ${r.red} röda av ${r.n}`+(r.ignored?` · ${r.ignored} ignoreras`:'');};
   $('#total-progress').innerHTML=Object.keys(SOURCES).map(k=>esc(line(k))).join('<br>')+(store.best?`<br>Bästa förhör ${esc(store.best)}`:'');
 }
@@ -1238,7 +1260,7 @@ function makeMolQuestion(topics){
   return {t,q:'Vilken molekyl visar bilden?',mol:id,o:[MOLS[id].n,...wrong],e:`${MOLS[id].n}, ${chem(MOLS[id].f)}. ${MOLS[id].note}`};
 }
 function quizSetup(){
-  const el=$('#quiz');
+  const el=$('#quiz');qz.title='';
   el.innerHTML=`<div><h2>Förhör</h2><p class="muted" style="margin-top:6px">${esc(SRC().name)}: ${SRC().quiz.length} frågor. Flervalsfrågor, skrivfrågor och bilder på molekyler. Du får förklaringen direkt efter varje svar.</p></div>
   <div class="setup">
     <div><p class="eyebrow" style="margin-bottom:8px">Ämnen <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· välj ett eller flera</span></p><div class="chips" id="qz-topics"></div><p class="muted" id="qz-count" style="margin-top:8px;font-size:.9rem"></p></div>
@@ -1271,16 +1293,41 @@ function startQuiz(retry){
   qz.list=list.map(q=>q.o?{...q,opts:shuffle(q.o)}:{...q});qz.i=0;qz.score=0;qz.missed=[];
   renderQ();
 }
+function startCardQuiz(cards,title){
+  qz.list=shuffle(cards).map(c=>({kind:'card',id:c.id,t:c.t,q:c.q,a:c.a,m:c.m,p:c.p}));qz.i=0;qz.score=0;qz.missed=[];qz.title=title;
+  if(location.hash!=='#forhor')location.hash='forhor';renderQ();
+}
+function gradeCard(st){
+  if(qz.answered)return;qz.answered=true;const q=qz.list[qz.i];
+  if(!store.ignored[q.id]){store.status[q.id]=st;save();}
+  if(st==='green')qz.score++;else qz.missed.push({q,given:STATUS[st].label});
+  next();
+}
+function showCard(){
+  const q=qz.list[qz.i],box=$('#qz-card');if(!box||box.dataset.shown)return;box.dataset.shown=1;
+  box.innerHTML=`<div class="feedback qcard-a"><b>Svar${q.p?` · s. ${q.p}`:''}</b>${fmt(q.a)}${q.m&&MOLS[q.m]?`<div class="mol">${molSVG(MOLS[q.m])}</div>`:''}</div>
+  <p class="muted" style="margin:14px 0 8px">Hur gick det? Det sparas som färg på kortet.</p>
+  <div class="deck-actions">${['red','yellow','green'].map((s,k)=>`<button type="button" class="b-${s}" data-g="${s}">${STATUS[s].label} <small>${['Inte alls','Ungefär','Helt säkert'][k]} · <span class="kbd">${k+1}</span></small></button>`).join('')}</div>`;
+  box.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>gradeCard(b.dataset.g));
+}
+document.addEventListener('keydown',e=>{
+  if(currentView()!=='forhor'||!qz.list.length||qz.list[qz.i]?.kind!=='card'||e.target.matches('input,select,textarea'))return;
+  const box=$('#qz-card');if(!box)return;
+  if((e.key===' '||e.key==='Enter')&&!box.dataset.shown){e.preventDefault();showCard();}
+  else if(box.dataset.shown&&'123'.includes(e.key)&&e.key)gradeCard(['red','yellow','green'][+e.key-1]);
+});
 function renderQ(){
   const q=qz.list[qz.i],el=$('#quiz');qz.answered=false;
-  el.innerHTML=`<div class="deck-meta"><span>Fråga ${qz.i+1} av ${qz.list.length} · ${TOPIC[q.t].name}</span><span>${qz.score} rätt</span></div>
+  el.innerHTML=`${qz.title?`<p class="eyebrow" style="margin-bottom:8px">${esc(qz.title)}</p>`:''}<div class="deck-meta"><span>Fråga ${qz.i+1} av ${qz.list.length} · ${TOPIC[q.t].name}</span><span>${qz.score} rätt</span></div>
   <div class="progress"><i style="width:${qz.i/qz.list.length*100}%"></i></div>
   <p class="qtext">${fmt(q.q)}</p>
   ${q.mol?`<div class="qmol">${molSVG(MOLS[q.mol],'Molekyl att känna igen')}</div>`:''}
-  ${q.opts?`<div class="opts">${q.opts.map((o,i)=>`<button type="button" class="opt" data-o="${esc(o)}"><span class="k">${'ABCD'[i]}</span><span>${o}</span></button>`).join('')}</div>`
+  ${q.kind==='card'?`<div id="qz-card"><p class="muted" style="margin-bottom:12px">Tänk ut svaret, eller säg det högt. Visa sedan svaret och bedöm dig själv.</p><button class="btn primary" id="qz-show" type="button">Visa svar <span class="kbd">mellanslag</span></button></div>`
+   :q.opts?`<div class="opts">${q.opts.map((o,i)=>`<button type="button" class="opt" data-o="${esc(o)}"><span class="k">${'ABCD'[i]}</span><span>${o}</span></button>`).join('')}</div>`
    :`<form class="write" id="qz-form"><input id="qz-input" autocomplete="off" placeholder="Skriv ditt svar" aria-label="Ditt svar"><button class="btn primary" type="submit">Svara</button></form>`}
   <div id="qz-fb"></div>`;
-  if(q.opts)el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>checkMC(b));
+  if(q.kind==='card'){$('#qz-show').onclick=showCard;$('#qz-show').focus();}
+  else if(q.opts)el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>checkMC(b));
   else{const f=$('#qz-form');$('#qz-input').focus();f.onsubmit=e=>{e.preventDefault();checkW($('#qz-input').value);};}
 }
 function feedback(ok,q,given){
@@ -1307,13 +1354,13 @@ function checkW(v){
 function next(){qz.i++;if(qz.i<qz.list.length)renderQ();else results();}
 function results(){
   const n=qz.list.length,s=qz.score,p=Math.round(s/n*100);
-  const res=`${s}/${n}`;if(!store.best||s/n>(+store.best.split('/')[0])/(+store.best.split('/')[1]))store.best=res;save();renderStart();
-  const msg=p===100?'Full pott! Du kan det här.':p>=80?'Riktigt bra. Kolla de missade så sitter allt.':p>=50?'Bra början. Öva på de missade och kör igen.':'Plugga med flashcards en stund och försök igen.';
+  const res=`${s}/${n}`,cardQ=qz.list.every(q=>q.kind==='card');if(!cardQ&&(!store.best||s/n>(+store.best.split('/')[0])/(+store.best.split('/')[1])))store.best=res;save();renderStart();
+  const msg=cardQ?(p===100?'Alla gröna! De här korten sitter nu.':`${n-s} kort är fortfarande inte gröna. Kör dem igen eller öva i flashcards.`):p===100?'Full pott! Du kan det här.':p>=80?'Riktigt bra. Kolla de missade så sitter allt.':p>=50?'Bra början. Öva på de missade och kör igen.':'Plugga med flashcards en stund och försök igen.';
   $('#quiz').innerHTML=`<div class="setup" style="text-align:center;justify-items:center"><p class="eyebrow">Resultat</p><p class="score">${s} / ${n}</p><p>${msg}</p>
-  <div class="row" style="justify-content:center">${qz.missed.length?'<button class="btn primary" id="qz-retry" type="button">Öva på de missade</button>':''}<button class="btn" id="qz-new" type="button">Nytt förhör</button></div></div>
-  ${qz.missed.length?`<div class="missed"><h3>Det här missade du</h3><ul>${qz.missed.map(m=>`<li><b>${fmt(m.q.q)}</b>${m.q.mol?` <span class="muted">(bild)</span>`:''}<br>Rätt svar: <b style="color:var(--ok)">${m.q.o?m.q.o[0]:m.q.w[0]}</b>${m.given?` · Ditt svar: <span style="color:var(--bad)">${esc(m.given)}</span>`:''}<br><span class="muted">${m.q.e}</span></li>`).join('')}</ul></div>`:''}`;
+  <div class="row" style="justify-content:center">${qz.missed.length?`<button class="btn primary" id="qz-retry" type="button">${cardQ?'Förhör de som inte är gröna':'Öva på de missade'}</button>`:''}${cardQ?'<a class="btn" href="#start">Till startsidan</a>':''}<button class="btn" id="qz-new" type="button">Nytt förhör</button></div></div>
+  ${qz.missed.length?`<div class="missed"><h3>Det här missade du</h3><ul>${qz.missed.map(m=>`<li><b>${fmt(m.q.q)}</b>${m.q.mol?` <span class="muted">(bild)</span>`:''}<br>${m.q.kind==='card'?`<span class="muted">Du svarade: ${esc(m.given)}</span><br>${fmt(m.q.a)}`:`Rätt svar: <b style="color:var(--ok)">${m.q.o?m.q.o[0]:m.q.w[0]}</b>${m.given?` · Ditt svar: <span style="color:var(--bad)">${esc(m.given)}</span>`:''}<br><span class="muted">${m.q.e}</span>`}</li>`).join('')}</ul></div>`:''}`;
   if(qz.missed.length)$('#qz-retry').onclick=()=>startQuiz(qz.missed.map(m=>m.q));
-  $('#qz-new').onclick=quizSetup;
+  $('#qz-new').onclick=()=>{qz.title='';quizSetup();};
 }
 
 /* ============ TANKEKARTA ============ */
