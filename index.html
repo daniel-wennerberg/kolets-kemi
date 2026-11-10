@@ -1209,7 +1209,7 @@ function renderSettings(){
 }
 function setSource(k){
   if(!SOURCES[k])return;store.source=k;save();
-  fc.topic='alla';fc.filter='alla';qz.topic='alla';qz.list=[];mmSel=SRC().topics[0].id;
+  fc.topic='alla';fc.filter='alla';qz.topics=[];qz.list=[];mmSel=SRC().topics[0].id;
   renderStart();buildDeck();quizSetup();renderMindmap();renderGallery();
   $('#gsrc').value=k;
 }
@@ -1228,25 +1228,33 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ FÖRHÖR ============ */
-const qz={topic:'alla',len:10,list:[],i:0,score:0,missed:[],answered:false};
-function makeMolQuestion(pool){
-  const ids=Object.keys(MOLS).filter(id=>pool==='alla'||MOLS[id].t===pool);
-  if(!ids.length)return null;
-  const id=ids[Math.floor(Math.random()*ids.length)];
+const qz={topics:[],len:10,list:[],i:0,score:0,missed:[],answered:false};
+function makeMolQuestion(topics){
+  const S=SRC(),sel=topics.length?S.topics.filter(t=>topics.includes(t.id)):S.topics;
+  const cand=sel.flatMap(t=>(t.mols||[]).filter(id=>MOLS[id]).map(id=>({id,t:t.id})));
+  if(!cand.length)return null;
+  const {id,t}=cand[Math.floor(Math.random()*cand.length)];
   const wrong=shuffle(Object.keys(MOLS).filter(x=>x!==id&&MOLS[x].n!==MOLS[id].n)).slice(0,3).map(x=>MOLS[x].n);
-  return {t:MOLS[id].t,q:'Vilken molekyl visar bilden?',mol:id,o:[MOLS[id].n,...wrong],e:`${MOLS[id].n}, ${chem(MOLS[id].f)}. ${MOLS[id].note}`};
+  return {t,q:'Vilken molekyl visar bilden?',mol:id,o:[MOLS[id].n,...wrong],e:`${MOLS[id].n}, ${chem(MOLS[id].f)}. ${MOLS[id].note}`};
 }
 function quizSetup(){
   const el=$('#quiz');
   el.innerHTML=`<div><h2>Förhör</h2><p class="muted" style="margin-top:6px">${esc(SRC().name)}: ${SRC().quiz.length} frågor. Flervalsfrågor, skrivfrågor och bilder på molekyler. Du får förklaringen direkt efter varje svar.</p></div>
   <div class="setup">
-    <div><p class="eyebrow" style="margin-bottom:8px">Ämne</p><div class="chips" id="qz-topics"></div></div>
+    <div><p class="eyebrow" style="margin-bottom:8px">Ämnen <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· välj ett eller flera</span></p><div class="chips" id="qz-topics"></div><p class="muted" id="qz-count" style="margin-top:8px;font-size:.9rem"></p></div>
     <div class="row"><label for="qz-len" class="eyebrow">Antal frågor</label><select id="qz-len"><option value="10">10</option><option value="20">20</option><option value="999">Alla</option></select></div>
     <div><button class="btn primary" id="qz-start" type="button">Starta förhöret</button></div>
   </div>
   ${store.best?`<p class="muted">Ditt bästa resultat hittills: ${store.best}</p>`:''}`;
-  const S=SRC();if(qz.topic!=='alla'&&!S.topics.some(t=>t.id===qz.topic))qz.topic='alla';
-  const draw=()=>renderTopicChips($('#qz-topics'),qz.topic,t=>{qz.topic=t;draw();},S.topics);draw();
+  const S=SRC();qz.topics=qz.topics.filter(id=>S.topics.some(t=>t.id===id));
+  const draw=()=>{const el=$('#qz-topics');
+    el.innerHTML=[{id:'alla',name:'Alla'}].concat(S.topics).map(t=>`<button type="button" class="chip" aria-pressed="${t.id==='alla'?!qz.topics.length:qz.topics.includes(t.id)}" data-t="${t.id}">${t.name}</button>`).join('');
+    el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const t=b.dataset.t;
+      if(t==='alla')qz.topics=[];else qz.topics=qz.topics.includes(t)?qz.topics.filter(x=>x!==t):[...qz.topics,t];
+      if(qz.topics.length===S.topics.length)qz.topics=[];draw();});
+    const n=S.quiz.filter(q=>!qz.topics.length||qz.topics.includes(q.t)).length;
+    $('#qz-count').textContent=`${n} frågor i ${qz.topics.length?(qz.topics.length===1?'valt ämne':qz.topics.length+' valda ämnen'):'alla ämnen'}`;};
+  draw();
   $('#qz-len').value=String(qz.len);
   $('#qz-start').onclick=()=>{qz.len=+$('#qz-len').value;startQuiz();};
 }
@@ -1254,10 +1262,10 @@ function startQuiz(retry){
   let list;
   if(retry){list=shuffle(retry);}
   else{
-    const pool=SRC().quiz.filter(q=>qz.topic==='alla'||q.t===qz.topic);
+    const pool=SRC().quiz.filter(q=>!qz.topics.length||qz.topics.includes(q.t));
     list=shuffle(pool).slice(0,qz.len);
     const nMol=Math.min(3,Math.max(1,Math.round(list.length/6)));
-    for(let k=0;k<nMol;k++){const m=makeMolQuestion(qz.topic);if(m){const pos=Math.floor(Math.random()*(list.length+1));list.splice(pos,0,m);}}
+    for(let k=0;k<nMol;k++){const m=makeMolQuestion(qz.topics);if(m){const pos=Math.floor(Math.random()*(list.length+1));list.splice(pos,0,m);}}
     if(qz.len<999&&list.length>qz.len)list=list.slice(0,qz.len);
   }
   qz.list=list.map(q=>q.o?{...q,opts:shuffle(q.o)}:{...q});qz.i=0;qz.score=0;qz.missed=[];
@@ -1339,7 +1347,7 @@ function renderDetail(){
   <div class="row" style="margin-top:16px"><a class="btn primary small" href="#kort" data-topic="${t.id}">Flashcards: ${t.name}</a><button class="btn small" type="button" id="mm-quiz">Förhör på ämnet</button></div></div>
   <div class="mols">${t.mols.map(id=>`<figure>${molSVG(MOLS[id])}<figcaption>${MOLS[id].n} <span class="muted" style="font-weight:400">${chem(MOLS[id].f)}</span></figcaption></figure>`).join('')}
   ${t.diag.filter(id=>DIAGS[id]).map(id=>`<figure style="grid-column:1/-1">${DIAGS[id].fn()}<figcaption>${DIAGS[id].h}</figcaption></figure>`).join('')}</div>`;
-  $('#mm-quiz').onclick=()=>{qz.topic=t.id;location.hash='forhor';setTimeout(()=>startQuiz(),0);};
+  $('#mm-quiz').onclick=()=>{qz.topics=[t.id];location.hash='forhor';setTimeout(()=>startQuiz(),0);};
 }
 
 /* ============ BILDER ============ */
